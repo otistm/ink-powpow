@@ -1,10 +1,11 @@
 # Changelog
 
 ## 0.2.0
-- Shooting is first person now. You look down your own rifle's iron sights, and the view swings round to follow where you aim.
+- Shooting is first person now. You hold the rifle straight out in front of you: two rear sight posts frame the front post, and the view swings round to follow where you aim.
 - Drag anywhere to move your sights, let go to fire. A quick tap fires where the sights already are. On a computer, move the mouse and click, or use the arrow keys and space.
-- The sights wobble a little, like holding a real rifle up. A dashed ring shows exactly where the cork will land.
-- Your rivals sit just off the edges of your view: the backs of their heads and their rifles reaching in, with dashed lines when they fire.
+- The sights wobble a little, like holding a real rifle up. A small dot on the front post's tip shows exactly where the cork will land.
+- A round window on the rifle shows how many corks you have left, and fills up as you reload.
+- Your rivals are out of sight now. They still shoot the same targets; their corks fly in from the side they sit on.
 - Soot bombs now land on your view itself, like ink on the lens.
 
 ## 0.1.0

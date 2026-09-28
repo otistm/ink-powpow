@@ -22,7 +22,7 @@ Otis is the designer. He doesn't read code. He judges changes by playing them on
 | art.js | Ink drawings: every target on canvas (kept as sprites, front and a hatched back for when they're knocked flat), heads with hats for rivals and barkers, the prizes, SVG icons for shells and upgrades |
 | audio.js | Sound made on the fly: cork pops (rivals' come from their side), tin clanks, bells, the sad trombone, and the band-organ waltz that speeds up at last call |
 | ui.js | The save, the midway in progress (`run`), animation helpers (`anim`, `squash`, `nope`), screens, overlay cards (`sheet`), banners, one-time tips, sound toggles |
-| booth.js | The booth screen, first person: the camera (`CAM`, zoomed `ZOOM` times into the gallery, easing toward your sights), your sights (`SIGHT`) and drag-to-aim input, drawing the gallery and awning in world units, then the foreground in screen pixels (counter, rivals at the screen edges, your rifle and iron sights, cork lines, soot on the lens), effects, the scoreboard, corks and shell belt, pause. `startRound()` |
+| booth.js | The booth screen, first person: the camera (`CAM`, zoomed `ZOOM` times into the gallery, easing toward your sights), your sights (`SIGHT`) and drag-to-aim input, drawing the gallery and awning in world units, then the foreground in screen pixels (counter, cork lines, your rifle held straight ahead with its sights centred, soot on the lens), effects, the scoreboard, corks and shell belt, pause. `startRound()` |
 | screens.js | Home, the booth intro, results, the shell cart, the grand prize, single booths, Pass the rifle, how to play |
 | main.js | Startup (always last) |
 
@@ -52,7 +52,7 @@ Otis is the designer. He doesn't read code. He judges changes by playing them on
 - Never rename a booth `id`, target key, shell id or upgrade id; saves store them.
 
 ## Look and feel (same as the other Ink games; keep it consistent)
-- First person: the gallery is drawn in world units through the camera; the counter, rivals, your rifle and the soot are drawn on top in screen pixels, sized by `fgU()` so they scale with the phone. Rivals sit just past the screen edges: the backs of their heads and their rifles reaching in.
+- First person: the gallery is drawn in world units through the camera; the counter, rivals, your rifle and the soot are drawn on top in screen pixels, sized by `fgU()` so they scale with the phone. The rifle is seen from behind, centred under the sights: two rear posts framing the front post (its tip is the aim), a receiver with a round window showing corks left, and two handguard rails angling to the bottom corners. The rivals aren't drawn; their corks fly in from their side of the screen.
 - Paper and ink only: white `#fff` and black `#000`, with grey `#5c5c5c` only for secondary text. Never color. Booths are told apart by their back wall pattern (waves, bricks, planks, a black night sky with white stars, harlequin diamonds), never by color.
 - Targets are white tin with 2.3px ink outlines and a hard 3px 4px black shadow. Black targets (with a white halo) cost points. Knocked targets flip back and lie flat, showing a hatched back.
 - Your points float up in solid black pills, rivals' in outlined pills with ◂ or ▸ for the side they sit.

@@ -10,7 +10,7 @@ let R = null, PLAY = null, paused = false, raf = 0, lastT = 0, endAt = 0;
 const cv = $('cv'), ctx = cv.getContext('2d');
 const V = { D: 1, cw: 0, ch: 0, sc: 1, k: 1, ox: 0, oy: 0, pat: null, patFor: '' };
 // the first-person camera: how far it's zoomed in, where it looks (world units), and where on screen that point sits
-const ZOOM = 1.55, EYE = .4, COUNTER = .8; // counter: the foreground counter starts this far down the screen
+const ZOOM = 1.55, EYE = .46, COUNTER = .8; // counter: the foreground counter starts this far down the screen
 const CAM = { x: 200, y: 300 };
 // your sights, in world units, and the drag that moves them
 const SIGHT = { x: 200, y: 300, wx: 0, wy: 0, drag: null, keys: {} };
@@ -32,7 +32,7 @@ function resize() {
 function camera(f) {
   const hw = V.cw / 2 / V.k, up = V.ch * EYE / V.k, down = V.ch * (COUNTER - EYE) / V.k;
   const clampTo = (v, lo, hi) => lo > hi ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, v));
-  const tx = clampTo(SIGHT.x, hw - 14, E.W + 14 - hw), ty = clampTo(SIGHT.y, up - 4, E.GH + 14 - down);
+  const tx = clampTo(SIGHT.x, hw - 70, E.W + 70 - hw), ty = clampTo(SIGHT.y, up - 4, E.GH + 14 - down);
   CAM.x += (tx - CAM.x) * f; CAM.y += (ty - CAM.y) * f;
   V.ox = V.cw / 2 - CAM.x * V.k; V.oy = V.ch * EYE - CAM.y * V.k;
 }
@@ -187,23 +187,57 @@ function drawRifle(x, y, ang, s, loaded, kick) {
 }
 // where your sights are right now, with the little wobble of holding a rifle up
 function sightNow() { return [SIGHT.x + SIGHT.wx, SIGHT.y + SIGHT.wy]; }
-// the rivals sit just off the edges of your view: the back of a head and shoulder, and a rifle reaching in
-function rivalPos(i) {
-  const u = fgU(), side = i === 0 ? -1 : 1;
-  return { hx: V.cw / 2 + side * (V.cw / 2 + 4 * u), hy: V.ch * .9, px: V.cw / 2 + side * (V.cw / 2 - 30 * u), py: V.ch * .86, s: 1.75 * u };
-}
+// Your rivals aren't drawn: their corks fly in from the side of the screen they sit on.
 function muzzleScreen(i) {
   if (i === 1) return yourRifle().muzzle;
-  const q = rivalPos(i), [ax, ay] = screenXY(AIM[i].x, AIM[i].y), ang = Math.atan2(ay - q.py, ax - q.px), L = 100 * q.s;
-  return [q.px + Math.cos(ang) * L, q.py + Math.sin(ang) * L];
+  return [i === 0 ? -20 : V.cw + 20, V.ch * .62];
 }
-// Your rifle, seen down the barrel: it reaches from the bottom of the screen to just under your sights.
+// Your rifle, seen from behind as you hold it up: the front post's tip is exactly where the cork lands.
 function yourRifle() {
-  const u = fgU(), [wx, wy] = sightNow(), [sx, sy] = screenXY(wx, wy), kick = AIM[1].kick * u * 1.6;
-  const bx = V.cw * .66 + (sx - V.cw / 2) * .35, by = V.ch + 30 * u + kick; // held at your right shoulder
-  const mx = sx, my = sy + 16 * u + kick * .6;
-  return { u, sx, sy, bx, by, mx, my, kick, muzzle: [mx, my - 6 * u] };
+  const u = fgU(), [wx, wy] = sightNow(), [sx, sy] = screenXY(wx, wy), kick = AIM[1].kick * u * 1.8;
+  return { u, sx, sy, kick, muzzle: [sx, sy + 4 * u] };
 }
+function drawYourRifle() {
+  const S = R.seats[1], g = yourRifle(), u = g.u, B = V.ch - g.sy + 30 * u; // B: from the sights down past the bottom of the screen
+  const P = pts => { ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x * u, y) : ctx.moveTo(x * u, y)); ctx.closePath(); };
+  const ink = (fill = '#fff') => { ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 2.6; ctx.strokeStyle = '#000'; ctx.stroke(); };
+  const shadow = f => { ctx.save(); ctx.translate(6 * u, 7 * u); f(); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore(); };
+  const hatchIn = (gap = 5, lean = .7) => { ctx.save(); ctx.clip(); ctx.beginPath(); for (let x = -400 * u; x < 400 * u; x += gap * u) { ctx.moveTo(x, -20 * u); ctx.lineTo(x + B * lean, B); } ctx.lineWidth = 1.1; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.restore(); };
+  const top = 58 * u, y = v => v * u;
+  ctx.save(); ctx.translate(g.sx, g.sy + g.kick); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  // the two handguard rails, reaching out to the bottom corners
+  [-1, 1].forEach(sd => {
+    const rail = () => P([[sd * 84, y(100)], [sd * 97, y(96)], [sd * 196, B], [sd * 146, B]]);
+    shadow(rail); rail(); ink(); rail(); hatchIn(4.5, sd * .5);
+    rail(); ctx.lineWidth = 2.6; ctx.stroke();
+    P([[sd * 90, y(98)], [sd * 171, B]]); ctx.lineWidth = 1.4; ctx.stroke();
+  });
+  // the receiver, widening toward you, shaded on its left side
+  const body = () => P([[-46, top], [46, top], [84, B], [-84, B]]);
+  shadow(body); body(); ink();
+  ctx.save(); P([[-46, top], [-20, top], [-32, B], [-84, B]]); hatchIn(4, .35); ctx.restore();
+  body(); ctx.lineWidth = 2.6; ctx.stroke();
+  P([[-20, top], [-32, B]]); ctx.lineWidth = 1.4; ctx.stroke(); P([[20, top], [32, B]]); ctx.stroke();
+  // the top rail's ridges
+  for (let k = 0; k < 4; k++) { const yy = top + y(10 + k * 12), w = 24 + k * 3; P([[-w, yy], [w, yy]]); ctx.lineWidth = 3 * u; ctx.stroke(); }
+  // a round window on the receiver shows your corks
+  { const cy = Math.min(top + y(112), B - y(60)), r = 24 * u;
+    ctx.beginPath(); ctx.arc(4 * u, cy + 5 * u, r, 0, TAU); ctx.fillStyle = '#000'; ctx.fill();
+    ctx.beginPath(); ctx.arc(0, cy, r, 0, TAU); ink(); ctx.beginPath(); ctx.arc(0, cy, r - 5 * u, 0, TAU); ctx.lineWidth = 1.4; ctx.setLineDash([3 * u, 3 * u]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (S.reloadT > 0) { ctx.beginPath(); ctx.arc(0, cy, r - 10 * u, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - S.reloadT / (S.reloadFull || 1))); ctx.lineWidth = 5 * u; ctx.stroke(); }
+    else { ctx.font = `900 ${Math.round(24 * u)}px Fraunces, Georgia, serif`; ctx.fillText(S.ammo, 0, cy + 1 * u); } }
+  // the rear sight: a block with two posts that frame the front post
+  const block = () => P([[-56, y(30)], [56, y(30)], [50, top], [-50, top]]);
+  shadow(block); block(); ink(); P([[-56, y(30)], [56, y(30)], [54, y(38)], [-54, y(38)]]); ink('#000');
+  [-1, 1].forEach(sd => { P([[sd * 34, y(32)], [sd * 44, y(32)], [sd * 50, y(-12)], [sd * 42, y(-14)]]); ink('#000'); });
+  // the front post, far off down the barrel; its tip is your aim
+  P([[-3, y(5)], [3, y(5)], [4.5, y(32)], [-4.5, y(32)]]); ink('#000');
+  ctx.restore();
+  // a tiny dot on the exact spot, so a thumb can find it
+  ctx.beginPath(); ctx.arc(g.sx, g.sy, 2.6 * u, 0, TAU); ctx.fillStyle = '#000'; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = '#fff'; ctx.stroke();
+}
+
 function drawCounterFg() {
   const u = fgU(), y = V.ch * COUNTER, shift = -(CAM.x - E.W / 2) * V.k * .35, w = 38 * u;
   ctx.fillStyle = '#000'; ctx.fillRect(0, y - 6 * u, V.cw, 10 * u);
@@ -215,41 +249,6 @@ function drawCounterFg() {
   ctx.restore();
   ctx.beginPath(); ctx.rect(-4, y, V.cw + 8, 18 * u); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#000'; ctx.stroke();
   ctx.beginPath(); ctx.moveTo(0, y + 29 * u); ctx.lineTo(V.cw, y + 29 * u); ctx.setLineDash([8 * u, 6 * u]); ctx.lineDashOffset = -shift; ctx.lineWidth = 1.6; ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
-}
-function drawRivalsFg() {
-  [0, 2].forEach(i => {
-    const S = R.seats[i], q = rivalPos(i), [ax, ay] = screenXY(AIM[i].x, AIM[i].y);
-    ctx.save(); ctx.translate(q.hx, q.hy); ctx.scale(q.s * 1.15, q.s * 1.15); LW = 2.6 / (q.s * 1.15); drawHead(ctx, S.hat || 'none', false);
-    if (S.sootT > 0) { ctx.globalAlpha = Math.min(1, S.sootT); for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.arc(Math.cos(k * 1.3 + PLAY.clock * 2) * 14 - (i ? 10 : -10), -24 - k * 5 - (PLAY.clock * 20 + k * 9) % 20, 4 + k, 0, TAU); ctx.fillStyle = '#000'; ctx.fill(); } }
-    ctx.restore();
-    drawRifle(q.px, q.py, Math.atan2(ay - q.py, ax - q.px), q.s, S.ammo > 0 && S.reloadT <= 0, AIM[i].kick);
-    if (S.reloadT > 0) { const cx = V.cw / 2 + (i ? 1 : -1) * (V.cw / 2 - 26 * fgU()), cy = q.hy - 70 * fgU(); ctx.beginPath(); ctx.arc(cx, cy, 9 * fgU(), -Math.PI / 2, -Math.PI / 2 + TAU * (1 - S.reloadT / (S.reloadFull || 1))); ctx.lineWidth = 3.5; ctx.strokeStyle = '#000'; ctx.stroke(); }
-  });
-}
-function drawYourRifle() {
-  const S = R.seats[1], g = yourRifle(), u = g.u;
-  const along = t => [g.bx + (g.mx - g.bx) * t, g.by + (g.my - g.by) * t], half = t => (40 - 34 * t) * u;
-  const edge = (t, side) => { const [x, y] = along(t); return [x + side * half(t), y]; };
-  const body = (t0, t1) => { ctx.beginPath(); let p = edge(t0, -1); ctx.moveTo(p[0], p[1]); p = edge(t1, -1); ctx.lineTo(p[0], p[1]); p = edge(t1, 1); ctx.lineTo(p[0], p[1]); p = edge(t0, 1); ctx.lineTo(p[0], p[1]); ctx.closePath(); };
-  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  // shadow, then the barrel, the hatched stock near you, bands, the rear sight and the front post
-  ctx.save(); ctx.translate(5 * u, 6 * u); body(0, 1); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
-  body(0, 1); ctx.fillStyle = '#fff'; ctx.fill();
-  ctx.save(); body(0, .32); ctx.clip(); ctx.beginPath(); for (let x = -V.ch; x < V.cw + V.ch; x += 5 * u) { ctx.moveTo(x, V.ch); ctx.lineTo(x + V.ch * .6, 0); } ctx.lineWidth = 1; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.restore();
-  body(0, 1); ctx.lineWidth = 2.6; ctx.strokeStyle = '#000'; ctx.stroke();
-  const [cx0, cy0] = along(0), [cx1, cy1] = along(1); ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.lineTo(cx1, cy1); ctx.lineWidth = 1.2; ctx.stroke();
-  [.62, .8, .95].forEach(t => { const a = edge(t, -1), b = edge(t, 1); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineWidth = 4 * u; ctx.stroke(); });
-  // rear sight: a plate with a V notch, lined up on your sights
-  { const t = .42, [x, y] = along(t), w = half(t) * 1.25, h = 12 * u;
-    ctx.beginPath(); ctx.moveTo(x - w, y); ctx.lineTo(x - w, y - h); ctx.lineTo(x - 7 * u, y - h); ctx.lineTo(x, y - 3 * u); ctx.lineTo(x + 7 * u, y - h); ctx.lineTo(x + w, y - h); ctx.lineTo(x + w, y); ctx.closePath();
-    ctx.fillStyle = '#000'; ctx.fill(); }
-  // front post
-  ctx.beginPath(); ctx.rect(g.mx - 2.5 * u, g.sy + 2 * u, 5 * u, g.my - g.sy - 2 * u); ctx.fillStyle = '#000'; ctx.fill();
-  if (S.ammo > 0 && S.reloadT <= 0) { ctx.beginPath(); ctx.rect(g.mx - 6 * u, g.my - 2 * u, 12 * u, 5 * u); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 1.8; ctx.stroke(); }
-  // a thin ring on the spot you'll hit, so a thumb can find it
-  ctx.beginPath(); ctx.arc(g.sx, g.sy, 11 * u, 0, TAU); ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke(); ctx.setLineDash([3 * u, 3 * u]); ctx.lineWidth = 1.6; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.setLineDash([]);
-  ctx.beginPath(); ctx.arc(g.sx, g.sy, 1.8 * u, 0, TAU); ctx.fillStyle = '#000'; ctx.fill();
-  if (S.reloadT > 0) { ctx.beginPath(); ctx.arc(g.sx, g.sy, 16 * u, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - S.reloadT / (S.reloadFull || 1))); ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.stroke(); }
 }
 // cork lines are drawn in screen space, from each rifle's muzzle to where the cork landed
 function drawShotLines() {
@@ -338,7 +337,7 @@ function draw(dt = 0) {
   drawFx(dt);
   // the foreground, in screen pixels
   ctx.setTransform(V.D, 0, 0, V.D, 0, 0);
-  drawCounterFg(); drawRivalsFg(); drawShotLines(); drawYourRifle(); drawBlots();
+  drawCounterFg(); drawShotLines(); drawYourRifle(); drawBlots();
   drawFloats();
 }
 
