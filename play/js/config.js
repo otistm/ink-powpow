@@ -1,6 +1,6 @@
 /* =====================================================================
-   Ink Gallery settings.
+   Ink Powpow settings.
    ===================================================================== */
 "use strict";
 // Shown on the home screen. Bump it with every change you ship.
-const VERSION = '0.1.0';
+const VERSION = '0.2.1';

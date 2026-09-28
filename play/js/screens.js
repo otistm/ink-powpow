@@ -242,7 +242,7 @@ function howTo() {
   const t = id => `<img class="ti" src="${targetURL(id)}" alt="">`;
   sheet(`<h2>How to play</h2>
     <div class="how">
-      <p><b>You’re on the middle stool.</b> Tap a target to shoot it. The shooters either side of you aim at the same targets, and whoever hits one first gets the points. Beat them both before the clock runs out.</p>
+      <p><b>You’re on the middle stool, looking down your rifle.</b> Put your thumb down anywhere and drag to move your sights, then let go to fire. A quick tap fires where the sights already are. The shooters either side of you aim at the same targets, and whoever hits one first gets the points. Beat them both before the clock runs out.</p>
       <p><b>Streaks.</b> 3 hits in a row doubles your points, 6 triples them. A miss starts you over.</p>
       <p><b>Corks.</b> 6 a load. The rifle reloads when it’s empty, or tap the corks to reload early (it’s quicker when the tube isn’t empty).</p>
       <p><b>Last call.</b> In the final 10 seconds the machinery speeds up.</p>

@@ -1,4 +1,4 @@
-/* Ink Gallery. Paper-and-ink look shared with the other Ink games: white paper, black ink, no other colors.
+/* Ink Powpow. Paper-and-ink look shared with the other Ink games: white paper, black ink, no other colors.
    Black targets are the ones that cost points; everything else is white tin with ink outlines. */
 :root{
   --paper:#ffffff; --ink:#000000; --soft:#5c5c5c;

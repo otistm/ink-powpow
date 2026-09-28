@@ -1,6 +1,6 @@
-# Ink Gallery: notes for Claude Code
+# Ink Powpow: notes for Claude Code
 
-Ink Gallery is a fairground mechanical shooting gallery drawn like a paper-and-ink cartoon. It's a sister game to Ink Nine (`../ink-nine`), Ink Rally (`../ink-rally`), Ink of Arms (`../ink-of-arms`), Ink Sky (`../ink-sky`) and Ink Craft (`../ink-craft`) and shares their look, fonts and way of working. You sit on the middle stool at a booth; rivals sit on your left and right and shoot at the same tin targets. Whoever hits a target first gets it. Walk the midway, five booths, and win the giant bear.
+Ink Powpow is a fairground mechanical shooting gallery drawn like a paper-and-ink cartoon. It's a sister game to Ink Nine (`../ink-nine`), Ink Rally (`../ink-rally`), Ink of Arms (`../ink-of-arms`), Ink Sky (`../ink-sky`) and Ink Craft (`../ink-craft`) and shares their look, fonts and way of working. You sit on the middle stool at a booth; rivals sit on your left and right and shoot at the same tin targets. Whoever hits a target first gets it. Walk the midway, five booths, and win the giant bear.
 
 ## Who you're working with
 Otis is the designer. He doesn't read code. He judges changes by playing them on his phone.
@@ -22,12 +22,12 @@ Otis is the designer. He doesn't read code. He judges changes by playing them on
 | art.js | Ink drawings: every target on canvas (kept as sprites, front and a hatched back for when they're knocked flat), heads with hats for rivals and barkers, the prizes, SVG icons for shells and upgrades |
 | audio.js | Sound made on the fly: cork pops (rivals' come from their side), tin clanks, bells, the sad trombone, and the band-organ waltz that speeds up at last call |
 | ui.js | The save, the midway in progress (`run`), animation helpers (`anim`, `squash`, `nope`), screens, overlay cards (`sheet`), banners, one-time tips, sound toggles |
-| booth.js | The booth screen: drawing the gallery, awning, counter, rivals and rifles, effects, the scoreboard, corks and shell belt, tapping to shoot, pause. `startRound()` |
+| booth.js | The booth screen, first person: the camera (`CAM`, zoomed `ZOOM` times into the gallery, easing toward your sights), your sights (`SIGHT`) and drag-to-aim input, drawing the gallery and awning in world units, then the foreground in screen pixels (counter, cork lines, your rifle held straight ahead with its sights centred, soot on the lens), effects, the scoreboard, corks and shell belt, pause. `startRound()` |
 | screens.js | Home, the booth intro, results, the shell cart, the grand prize, single booths, Pass the rifle, how to play |
 | main.js | Startup (always last) |
 
 ## How it plays
-- **A round** is 40 seconds after "Ready… Aim… Fire!". Tap a target to shoot it. Three seats: left rival, you, right rival. Everyone shoots the same targets; a knocked target is gone for everyone until the machinery brings it round again.
+- **A round** is 40 seconds after "Ready… Aim… Fire!". It's first person: you look down your rifle and the view follows your sights. Drag anywhere to aim (the sights move 1.2 times as far as your thumb), let go to fire; a quick tap fires where they already are. Mouse: move and click. Keyboard: arrows and space. The sights wobble slightly and a dashed ring shows where the cork lands. Three seats: left rival, you, right rival. Everyone shoots the same targets; a knocked target is gone for everyone until the machinery brings it round again.
 - **Streaks.** Every 3 shots in a row that hit something add x1 to your points, up to x3 (x4 with Keen eye). A shot that hits nothing resets it. Hitting a black target resets it too and costs points.
 - **Corks.** 6 a load (8 with Long tube). Empty reloads by itself in 1.1s; tapping the corks reloads early, quicker the fuller the tube is.
 - **Last call.** The final 10 seconds, the machinery runs 1.35 times faster and the music speeds up.
@@ -38,7 +38,7 @@ Otis is the designer. He doesn't read code. He judges changes by playing them on
 - **The midway**: 5 booths (Duck Pond, Tin Can Alley, Dustbowl Saloon, Moon & Stars, Grand Gallery with champion Deadeye Dot). You start with 3 tokens, 10 tickets and 3 shells. Win a booth (beat both rivals; ties go to you) to move on; lose and it costs a token and you try again. Tickets: score ÷ 25, plus 10 for 1st or 4 for 2nd. Between booths the shell cart sells 4 shells and 2 rifle upgrades. Each booth's first win puts its prize on the home-screen shelf: goldfish in a bag, tin kazoo, sheriff's star, moon balloon, giant bear.
 - **Single booths**: every booth can be played on its own from the home screen, for a best score.
 - **Pass the rifle**: 2 to 4 friends take turns on one phone, same booth, same seed. Every shot is recorded against the machine clock (`R.rec`), so a friend's round plays back exactly where they shot. Whoever went before you sits beside you (most recent on the left); empty stools get the booth's rivals. Highest score wins.
-- **Balance check:** `node tools/check.js` puts a bot in your stool ("casual" and "good") for 150 rounds per booth. At 0.1.0 the good bot wins about 100% / 99% / 93% / 89% / 52% of booths 1 to 5, the casual bot about 95% / 80% / 50% / 30% / 2%. A thoughtful human should land between them. Re-run it after changing rivals, targets or machinery and tell Otis how the rates moved.
+- **Balance check:** `node tools/check.js` puts a bot in your stool ("casual" and "good") for 150 rounds per booth. The bot aims instantly, so it doesn't feel the time it takes to drag your sights in first person; judge difficulty by playing too. At 0.1.0 the good bot wins about 100% / 99% / 93% / 89% / 52% of booths 1 to 5, the casual bot about 95% / 80% / 50% / 30% / 2%. A thoughtful human should land between them. Re-run it after changing rivals, targets or machinery and tell Otis how the rates moved.
 
 ## Every change
 1. Work on a new branch, never directly on `main`.
@@ -47,11 +47,13 @@ Otis is the designer. He doesn't read code. He judges changes by playing them on
 4. Test locally: run `python -m http.server 8041` in the repo folder and open http://localhost:8041/play/ at a phone size (390 × 844). Also check a small phone (375 × 667) and a wide screen: the belt (corks, shells, pause) must fit on one row and the gallery must never be cut off.
 
 ## Protect players' saved progress
+- The game was called Ink Gallery until 0.2.1. The save keys below keep that old name on purpose: renaming them would wipe everyone's prizes. The repo folder is still `ink-gallery` too.
 - `inkgallery-save`: `{ prizes: [5 bools], bears, best: { boothId: score }, tips: {}, snd, mus, friends: [names] }`, one prize per booth by position in `BOOTHS`. Add new booths at the end.
 - `inkgallery-run`: `{ v: 1, run, phase, at }`. Saved between booths only (not mid-round). `run` is `{ booth, tokens, tickets, shells, ups, seed, scores, tries, sold }`. If you change its shape in a way a default can't cover, bump `v` and make `loadRun()` convert or ignore older ones.
 - Never rename a booth `id`, target key, shell id or upgrade id; saves store them.
 
 ## Look and feel (same as the other Ink games; keep it consistent)
+- First person: the gallery is drawn in world units through the camera; the counter, rivals, your rifle and the soot are drawn on top in screen pixels, sized by `fgU()` so they scale with the phone. Your rifle is a toy cork gun modelled in 3D (`GUN` in booth.js: sizes in metres-ish, x right, y down, z forward from your eye) and projected onto the screen, so the barrel recedes toward the sights. Both ring sights sit on your eye line, so they're concentric on the aim point. Drawn stock first, then barrel (stripes, cork, string, front ring), then the action block and rear ring. Keep it a toy: chunky, stripes, screws, cork. The rivals aren't drawn; their corks fly in from their side of the screen.
 - Paper and ink only: white `#fff` and black `#000`, with grey `#5c5c5c` only for secondary text. Never color. Booths are told apart by their back wall pattern (waves, bricks, planks, a black night sky with white stars, harlequin diamonds), never by color.
 - Targets are white tin with 2.3px ink outlines and a hard 3px 4px black shadow. Black targets (with a white halo) cost points. Knocked targets flip back and lie flat, showing a hatched back.
 - Your points float up in solid black pills, rivals' in outlined pills with ◂ or ▸ for the side they sit.
@@ -66,7 +68,7 @@ Otis is the designer. He doesn't read code. He judges changes by playing them on
 - The front page shows the awning and two rails of tin targets being knocked flat, and a Play button.
 - Home: the prize shelf (greyed until won), Walk the midway, the five booths with best scores, Pass the rifle, How to play, sound and music toggles.
 - Walk the midway: the booth intro shows 5 dots with a crown, the barker's line, both rivals, 3 tokens and your shells. Step up: first time only, a how-to card. Then Ready, Aim, Fire.
-- Tap a target: your rifle kicks, a cork line flies, the target clanks and flips flat, "+10" floats up in black. 3 in a row: "x2!". Rivals' shots come from their side with dashed lines and outlined pills.
+- Drag to put the sights on a target and let go: the view follows, your rifle kicks, a cork line flies, the target clanks and flips flat, "+10" floats up in black. 3 in a row: "x2!". Rivals' shots come from their side with dashed lines and outlined pills.
 - Tap a black target: a sad trombone, points lost, the scoreboard shakes. Empty the tube: it reloads by itself. Tap the corks to reload early.
 - Load a shell from the belt: it rises and a note explains it. Ricochet bounces on with dashed arcs, the firecracker bursts, the spanner freezes everything.
 - Last 10 seconds: "Last call!", the fuse blinks, everything and the music speed up. "Time!" then results.

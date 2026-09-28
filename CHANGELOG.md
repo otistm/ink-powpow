@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.1
+- The game is now called Ink Powpow. New tagline: Aim. Shoot. Win prizes.
+- Your prizes, best scores and a midway in progress carry over.
+- Fixed a hidden error when the window changed size on the home screen.
+
+## 0.2.0
+- Shooting is first person now. You hold a toy cork gun straight out in front of you, and the view swings round to follow where you aim.
+- The gun is drawn in proper perspective, pointing away from you: a bevelled wooden stock with screws, a tin action block with a cocking knob, a candy-striped barrel whose stripes get shorter into the distance, and a fat cork in the muzzle tied back with a string.
+- Round ring sights: a big ring near your eye and a small ring out on the barrel. Line them up on a target and let go.
+- Drag anywhere to move your sights, let go to fire. A quick tap fires where the sights already are. On a computer, move the mouse and click, or use the arrow keys and space.
+- The sights wobble a little, like holding a real rifle up. The gun jolts back toward you when it fires.
+- The cork disappears from the muzzle while you reload, and a ring fills in around the sights.
+- Your rivals are out of sight now. They still shoot the same targets; their corks fly in from the side they sit on.
+- Soot bombs now land on your view itself, like ink on the lens.
+
 ## 0.1.0
 - First version. A fairground mechanical shooting gallery. You sit on the middle stool; the shooters either side of you aim at the same tin targets, and whoever hits one first gets the points.
 - Tap to shoot. 6 corks a load, reloading by itself or early with a tap. 3 hits in a row doubles your points, 6 triples them; a miss starts you over.

@@ -1,7 +1,7 @@
 {
-  "name": "Ink Gallery",
-  "short_name": "Ink Gallery",
-  "description": "Step right up. Knock ’em down. Win the big bear.",
+  "name": "Ink Powpow",
+  "short_name": "Ink Powpow",
+  "description": "Aim. Shoot. Win prizes.",
   "start_url": "/play/",
   "scope": "/",
   "display": "standalone",

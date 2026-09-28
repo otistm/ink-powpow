@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Ink Gallery: step right up, knock ’em down</title>
+<title>Ink Powpow: aim, shoot, win prizes</title>
 <meta name="description" content="A minimal ink-drawn fairground shooting gallery. Out-shoot the rivals either side of you, booth by booth, and win the giant bear.">
 <meta name="theme-color" content="#ffffff">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Ink Gallery">
+<meta name="apple-mobile-web-app-title" content="Ink Powpow">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Ink Gallery">
-<meta property="og:title" content="Ink Gallery">
-<meta property="og:description" content="Step right up. Knock ’em down. Win the big bear.">
+<meta property="og:site_name" content="Ink Powpow">
+<meta property="og:title" content="Ink Powpow">
+<meta property="og:description" content="Aim. Shoot. Win prizes.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,900&family=Figtree:wght@600;800&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@ main{position:relative;z-index:1;min-height:100vh;min-height:100dvh;display:grid
 .card{width:min(420px,100%);background:var(--paper);border:2.5px solid var(--ink);border-radius:26px;box-shadow:7px 8px 0 var(--ink);padding:26px 24px 22px;text-align:center;
   animation:in .8s cubic-bezier(.3,.7,.3,1) both .2s}
 @keyframes in{0%{opacity:0;transform:translateY(60px) scale(.8,1.2)}55%{opacity:1;transform:translateY(-8px) scale(1.04,.96)}78%{transform:translateY(2px) scale(.99,1.01)}100%{transform:none}}
-h1{font-family:var(--display);font-style:italic;font-weight:900;font-size:clamp(48px,13vw,70px);line-height:.95;margin:0;letter-spacing:-.01em}
+h1{font-family:var(--display);font-style:italic;font-weight:900;font-size:clamp(40px,11.5vw,66px);white-space:nowrap;line-height:.95;margin:0;letter-spacing:-.01em}
 .tag{font-weight:800;font-size:17px;margin:12px 0 20px}
 .play{display:block;width:100%;background:var(--ink);color:var(--paper);text-decoration:none;border-radius:18px;padding:17px 20px;font-family:var(--display);font-style:italic;font-weight:900;font-size:30px;
   border:2.5px solid var(--ink);transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
@@ -49,8 +49,8 @@ footer{margin-top:12px;font-size:12px;font-weight:600;color:var(--soft)}
 <canvas id="c" aria-hidden="true"></canvas>
 <main>
   <div class="card">
-    <h1>Ink Gallery</h1>
-    <p class="tag">Step right up. Knock ’em down. Win the big bear.</p>
+    <h1>Ink Powpow</h1>
+    <p class="tag">Aim. Shoot. Win prizes.</p>
     <a class="play" href="/play/">Play</a>
     <ul class="feats">
       <li><svg viewBox="0 0 48 48" aria-hidden="true"><g fill="#fff" stroke="#000" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="30" r="8"/><circle cx="36" cy="30" r="8"/><circle cx="24" cy="18" r="9" fill="#000"/><path d="M4 46q2-8 8-8t8 8M28 46q2-8 8-8t8 8"/></g></svg><span><b>Rivals either side.</b> They shoot the same targets. Whoever hits first scores.</span></li>
