@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+- Aiming is snappier. The view stays locked on your sights instead of drifting after them.
+- Moving your thumb nudges the sights straight away; holding the stick tilted keeps them gliding. Small tilts get going sooner, and full tilt is a little faster.
+- The sights wobble about half as much.
+
 ## 0.4.0
 - Aiming is a stick now, like walking in Ink Sky. Put a thumb down anywhere and a stick appears under it; tilt it and your sights glide that way.
 - A small tilt nudges the sights for fine aim; tilt all the way and they swing across the whole booth in under a second. Your thumb only needs a small circle.

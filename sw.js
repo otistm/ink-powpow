@@ -1,6 +1,6 @@
 // Ink Powpow service worker: always tries the network first so updates show up right away,
 // and falls back to the last copy it saw so the game still opens with a weak connection.
-const CACHE = 'inkpowpow-v5';
+const CACHE = 'inkpowpow-v6';
 const CORE = ['/', '/play/', '/manifest.webmanifest', '/icons/icon.svg'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });

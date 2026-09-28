@@ -3,4 +3,4 @@
    ===================================================================== */
 "use strict";
 // Shown on the home screen. Bump it with every change you ship.
-const VERSION = '0.4.0';
+const VERSION = '0.4.1';
