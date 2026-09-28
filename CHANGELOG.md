@@ -2,8 +2,11 @@
 
 ## 0.6.0
 - You shoot with a toy slingshot now instead of a rifle: a wooden Y with tape round the handle, black rubber bands and a leather pouch holding a cork.
-- Put a thumb down anywhere to draw it back, drag to aim, let go to fire. The gap between the prongs is your aim, and it still follows your thumb like a mouse with no delay. A tap fires where you're already aiming.
-- The pouch pulls back toward you while your thumb is down, then snaps forward through the prongs with a wobble when you let go. The shot happens the instant you let go.
+- It works like a real slingshot, and like the swing in Ink Nine: press anywhere, pull back, let go. The pouch sits right under your thumb as you pull, and the shot goes along the line from the pouch through the prongs: pull down to shoot higher, left to shoot right.
+- A dotted line and a ring show exactly where the shot will land while you pull.
+- Hold still for a moment mid-pull and it drops into a finer gear for small adjustments. The little wobble of your thumb lifting off is ignored. Let go without pulling back and nothing fires.
+- The pouch snaps out through the prongs with a wobble when you let go. The shot happens the instant you let go.
+- The whole gallery is in view now and doesn't move, and the slingshot sits low at the bottom of the screen.
 - The Pow! button is gone. Reload stays at the bottom, next to your shells.
 - Pass the rifle is now Pass the slingshot. The Long tube and Quick pump upgrades are now the Cork bag and Quick hands (they work the same).
 
