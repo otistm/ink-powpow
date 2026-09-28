@@ -166,6 +166,11 @@ input{ -webkit-user-select:text; user-select:text; }
 .loadnote.on{ max-height:40px; }
 .loadnote b{ font-weight:800; }
 .belt{ flex:none; display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center; }
+/* the aiming stick: a dashed ring where your thumb lands, a knob under your thumb */
+.stick{ position:absolute; left:0; top:0; width:0; height:0; z-index:12; pointer-events:none; display:none; }
+.stick.on{ display:block; }
+.stick::before{ content:""; position:absolute; left:-46px; top:-46px; width:92px; height:92px; border-radius:50%; border:2.5px dashed var(--ink); background:rgba(255,255,255,.55); }
+.stick i{ position:absolute; left:-17px; top:-17px; width:34px; height:34px; border-radius:50%; border:2.5px solid var(--ink); background:var(--paper); box-shadow:2px 3px 0 var(--ink); }
 /* the fire button: big and round, under your right thumb */
 .fire{ width:78px; height:78px; border-radius:50%; border:3px solid var(--ink); background:var(--ink); color:var(--paper); box-shadow:4px 5px 0 var(--ink), inset 0 0 0 4px var(--ink), inset 0 0 0 6px var(--paper);
   display:grid; place-items:center; touch-action:none; transition:transform .12s var(--spring); }

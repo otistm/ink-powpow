@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+- Aiming is a stick now, like walking in Ink Sky. Put a thumb down anywhere and a stick appears under it; tilt it and your sights glide that way.
+- A small tilt nudges the sights for fine aim; tilt all the way and they swing across the whole booth in under a second. Your thumb only needs a small circle.
+- Push past the edge and the stick slides along with your thumb, so you never run out of room.
+
 ## 0.3.0
 - New controls, to try out. Drag a thumb anywhere on the screen to aim; letting go no longer fires.
 - A big round Pow! button fires, under your right thumb. It fires the moment you press it, and you can keep aiming with the other thumb at the same time.
