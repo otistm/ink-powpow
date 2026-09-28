@@ -135,7 +135,7 @@ input{ -webkit-user-select:text; user-select:text; }
 .rival span{ font-size:12px; font-weight:600; line-height:1.3; margin-top:3px; }
 
 /* ---------- the booth ---------- */
-#play{ max-width:560px; gap:6px; padding:calc(env(safe-area-inset-top,0px) + 8px) 10px calc(env(safe-area-inset-bottom,0px) + 8px); }
+#play{ touch-action:none; max-width:560px; gap:6px; padding:calc(env(safe-area-inset-top,0px) + 8px) 10px calc(env(safe-area-inset-bottom,0px) + 8px); }
 .scores{ margin-top:6px; display:grid; grid-template-columns:1fr 1.25fr 1fr; gap:6px; flex:none; }
 .plq{ position:relative; display:flex; align-items:center; gap:5px; border:2px solid var(--ink); border-radius:14px; padding:5px 6px; min-width:0; background:var(--paper); }
 .plq.you{ background:var(--ink); color:var(--paper); box-shadow:3px 4px 0 var(--ink); border-width:2.5px; justify-content:center; }
@@ -166,11 +166,6 @@ input{ -webkit-user-select:text; user-select:text; }
 .loadnote.on{ max-height:40px; }
 .loadnote b{ font-weight:800; }
 .belt{ flex:none; display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:center; }
-/* the aiming stick: a dashed ring where your thumb lands, a knob under your thumb */
-.stick{ position:absolute; left:0; top:0; width:0; height:0; z-index:12; pointer-events:none; display:none; }
-.stick.on{ display:block; }
-.stick::before{ content:""; position:absolute; left:-46px; top:-46px; width:92px; height:92px; border-radius:50%; border:2.5px dashed var(--ink); background:rgba(255,255,255,.55); }
-.stick i{ position:absolute; left:-17px; top:-17px; width:34px; height:34px; border-radius:50%; border:2.5px solid var(--ink); background:var(--paper); box-shadow:2px 3px 0 var(--ink); }
 /* the fire button: big and round, under your right thumb */
 .fire{ width:78px; height:78px; border-radius:50%; border:3px solid var(--ink); background:var(--ink); color:var(--paper); box-shadow:4px 5px 0 var(--ink), inset 0 0 0 4px var(--ink), inset 0 0 0 6px var(--paper);
   display:grid; place-items:center; touch-action:none; transition:transform .12s var(--spring); }
