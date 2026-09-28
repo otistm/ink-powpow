@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+- The game is now called Ink Powpow. New tagline: Aim. Shoot. Win prizes.
+- Your prizes, best scores and a midway in progress carry over.
+- Fixed a hidden error when the window changed size on the home screen.
+
 ## 0.2.0
 - Shooting is first person now. You hold a toy cork gun straight out in front of you, and the view swings round to follow where you aim.
 - The gun is drawn in proper perspective, pointing away from you: a bevelled wooden stock with screws, a tin action block with a cocking knob, a candy-striped barrel whose stripes get shorter into the distance, and a fat cork in the muzzle tied back with a string.

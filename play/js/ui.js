@@ -7,7 +7,7 @@ const $ = id => document.getElementById(id);
 const RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------- save ----------
-// Saved progress. Never rename this key or remove a field, or players lose their prizes.
+// Saved progress. The key keeps the game's old name (Ink Gallery) on purpose. Never rename this key or remove a field, or players lose their prizes.
 // { prizes: [5 bools, one per booth in BOOTHS order], bears, best: { boothId: score }, tips: {}, snd, mus, friends: [names] }
 const SAVE_KEY = 'inkgallery-save';
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch (e) { return {}; } }

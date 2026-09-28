@@ -36,7 +36,7 @@ function camera(f) {
   CAM.x += (tx - CAM.x) * f; CAM.y += (ty - CAM.y) * f;
   V.ox = V.cw / 2 - CAM.x * V.k; V.oy = V.ch * EYE - CAM.y * V.k;
 }
-addEventListener('resize', () => { if (R) { resize(); draw(); } });
+addEventListener('resize', () => { if (R && $('play').classList.contains('on')) { resize(); draw(); } });
 const world = () => ctx.setTransform(V.D * V.k, 0, 0, V.D * V.k, V.D * (V.ox + (SHAKE ? (Math.random() - .5) * SHAKE : 0)), V.D * (V.oy + (SHAKE ? (Math.random() - .5) * SHAKE : 0)));
 const screenXY = (x, y) => [V.ox + x * V.k, V.oy + y * V.k];
 const viewLeft = () => -V.ox / V.k, viewRight = () => (V.cw - V.ox) / V.k, viewTop = () => -V.oy / V.k, viewBottom = () => (V.ch - V.oy) / V.k;
@@ -44,7 +44,7 @@ const viewLeft = () => -V.ox / V.k, viewRight = () => (V.cw - V.ox) / V.k, viewT
 // ---------- the back wall ----------
 function wallPattern(kind) {
   const k = V.k * V.D, tw = { waves: 48, bricks: 48, planks: 36, night: 120, harlequin: 40 }[kind], th = { waves: 26, bricks: 26, planks: 90, night: 120, harlequin: 60 }[kind];
-  const c = document.createElement('canvas'); c.width = Math.round(tw * k); c.height = Math.round(th * k);
+  const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(tw * k)); c.height = Math.max(1, Math.round(th * k));
   const x = c.getContext('2d'); x.scale(c.width / tw, c.height / th);
   x.fillStyle = kind === 'night' ? '#000' : '#fff'; x.fillRect(0, 0, tw, th);
   x.strokeStyle = '#000'; x.fillStyle = '#000'; x.lineWidth = .9; x.lineCap = 'round';

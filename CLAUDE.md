@@ -1,6 +1,6 @@
-# Ink Gallery: notes for Claude Code
+# Ink Powpow: notes for Claude Code
 
-Ink Gallery is a fairground mechanical shooting gallery drawn like a paper-and-ink cartoon. It's a sister game to Ink Nine (`../ink-nine`), Ink Rally (`../ink-rally`), Ink of Arms (`../ink-of-arms`), Ink Sky (`../ink-sky`) and Ink Craft (`../ink-craft`) and shares their look, fonts and way of working. You sit on the middle stool at a booth; rivals sit on your left and right and shoot at the same tin targets. Whoever hits a target first gets it. Walk the midway, five booths, and win the giant bear.
+Ink Powpow is a fairground mechanical shooting gallery drawn like a paper-and-ink cartoon. It's a sister game to Ink Nine (`../ink-nine`), Ink Rally (`../ink-rally`), Ink of Arms (`../ink-of-arms`), Ink Sky (`../ink-sky`) and Ink Craft (`../ink-craft`) and shares their look, fonts and way of working. You sit on the middle stool at a booth; rivals sit on your left and right and shoot at the same tin targets. Whoever hits a target first gets it. Walk the midway, five booths, and win the giant bear.
 
 ## Who you're working with
 Otis is the designer. He doesn't read code. He judges changes by playing them on his phone.
@@ -47,6 +47,7 @@ Otis is the designer. He doesn't read code. He judges changes by playing them on
 4. Test locally: run `python -m http.server 8041` in the repo folder and open http://localhost:8041/play/ at a phone size (390 × 844). Also check a small phone (375 × 667) and a wide screen: the belt (corks, shells, pause) must fit on one row and the gallery must never be cut off.
 
 ## Protect players' saved progress
+- The game was called Ink Gallery until 0.2.1. The save keys below keep that old name on purpose: renaming them would wipe everyone's prizes. The repo folder is still `ink-gallery` too.
 - `inkgallery-save`: `{ prizes: [5 bools], bears, best: { boothId: score }, tips: {}, snd, mus, friends: [names] }`, one prize per booth by position in `BOOTHS`. Add new booths at the end.
 - `inkgallery-run`: `{ v: 1, run, phase, at }`. Saved between booths only (not mid-round). `run` is `{ booth, tokens, tickets, shells, ups, seed, scores, tries, sold }`. If you change its shape in a way a default can't cover, bump `v` and make `loadRun()` convert or ignore older ones.
 - Never rename a booth `id`, target key, shell id or upgrade id; saves store them.

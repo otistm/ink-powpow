@@ -1,6 +1,6 @@
-# Ink Gallery
+# Ink Powpow
 
-Step right up. Knock ’em down. Win the big bear. A fairground shooting gallery in the Ink series, sister to Ink Nine, Ink Rally, Ink of Arms, Ink Sky and Ink Craft.
+Aim. Shoot. Win prizes. A fairground shooting gallery in the Ink series, sister to Ink Nine, Ink Rally, Ink of Arms, Ink Sky and Ink Craft.
 
 - `index.html` is the front page; the game is in `play/`.
 - The targets, shells, rivals and booths are in `play/js/gallery.js`.
