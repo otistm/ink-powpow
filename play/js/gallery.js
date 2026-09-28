@@ -1,6 +1,6 @@
 /* =====================================================================
    The rules, with no drawing: every target, the special shells, the
-   rifle upgrades, the rivals and their brains, the five booths and the
+   slingshot upgrades, the rivals and their brains, the five booths and the
    machinery in them, and a round of shooting. Exposed as `E`.
    Nothing in here touches the page, so tools/check.js can run it in Node.
    ===================================================================== */
@@ -14,6 +14,9 @@ const LAST_CALL = 10, LAST_SPEED = 1.35; // the last 10 seconds, the machinery r
 const COUNT = 3;                     // Ready, aim, fire
 const MAG = 6, RELOAD = 1.1, PUMP = .12; // corks per load, seconds to reload, fastest you can pump
 const NPC_RELOAD = 1.3;
+// Shots fly: the ball lands this many seconds after it leaves the slingshot, and only then does it hit whatever is there.
+// A full pull flies fastest (FLIGHT_MIN), a weak one slowest (FLIGHT_MAX). Rivals pull fairly hard (NPC_FLIGHT) and lead their targets.
+const FLIGHT_MIN = .2, FLIGHT_MAX = .38, NPC_FLIGHT = .25;
 const COMBO_EVERY = 3, COMBO_MAX = 3; // every 3 hits in a row adds x1, up to x3
 const BELT = 4;                       // special shells you can carry
 const FREEZE = 3, SOOT = 4;           // spanner and soot bomb, in seconds
@@ -75,10 +78,10 @@ const SHELLS = {
 };
 const SHELL_IDS = Object.keys(SHELLS);
 
-// ---------- rifle upgrades (last the whole midway) ----------
+// ---------- slingshot upgrades (last the whole midway) ----------
 const UPS = {
-  tube:    { name: 'Long tube',       price: 16, text: 'Hold 8 corks instead of 6.' },
-  pump:    { name: 'Quick pump',      price: 14, text: 'Reload a third faster.' },
+  tube:    { name: 'Cork bag',        price: 16, text: 'Hold 8 corks instead of 6.' },
+  pump:    { name: 'Quick hands',     price: 14, text: 'Reload a third faster.' },
   steady:  { name: 'Steady streak',   price: 14, text: 'A miss only drops your streak one step, not all the way.' },
   pockets: { name: 'Deep pockets',    price: 12, text: 'Carry 6 shells instead of 4.' },
   lucky:   { name: 'Lucky horseshoe', price: 12, text: 'Mystery boxes give you 2 shells instead of 1.' },
@@ -230,7 +233,7 @@ const standing = sl => sl.vis && !sl.down;
 function newRound(o) {
   const B = BOOTHS[o.booth], seed = o.seed >>> 0;
   const R = { booth: o.booth, B, seed, rnd: rng(seed ^ 0x9e3779b9), t: -COUNT, mt: 0, rate: 1, left: ROUND, freeze: 0, phase: 'count', lastCall: false,
-    rigs: B.rigs.map(makeRig), seats: [], ev: [], rec: [] };
+    rigs: B.rigs.map(makeRig), seats: [], ev: [], rec: [], air: [] };
   R.seats = o.seats.map((s, i) => makeSeat(R, s, i));
   place(R);
   return R;
@@ -257,6 +260,16 @@ function step(R, dt) {
   R.left -= dt;
   if (!R.lastCall && R.left <= LAST_CALL) { R.lastCall = true; R.ev.push({ k: 'lastcall' }); }
   place(R);
+  // how fast everything is moving right now, so the rivals can lead a target
+  for (const r of R.rigs) for (const sl of r.slots) {
+    const same = sl.pcyc === sl.cyc && dt > 0;
+    if (r.k !== 'rail' && r.k !== 'fly') sl.vx = same ? (sl.x - sl.px) / dt : 0;
+    sl.vy = same ? (sl.y - sl.py) / dt : 0;
+    sl.px = sl.x; sl.py = sl.y; sl.pcyc = sl.cyc;
+  }
+  // balls in the air that have arrived
+  // flight time runs on the machine clock (so a friend's replayed shot lands exactly where it did), but keeps going through a jam
+  if (R.air.length) R.air = R.air.filter(a => (a.left -= R.freeze > 0 ? dt : dt * R.rate) > 0 || (land(R, a), false));
   for (const S of R.seats) {
     if (S.sootT > 0) S.sootT = Math.max(0, S.sootT - dt);
     if (S.pumpT > 0) S.pumpT -= dt;
@@ -264,7 +277,7 @@ function step(R, dt) {
     if (S.kind === 'npc') think(R, S, dt);
     else if (S.kind === 'ghost') replay(R, S);
   }
-  if (R.left <= 0) { R.left = 0; R.phase = 'done'; R.ev.push({ k: 'end' }); }
+  if (R.left <= 0) { R.left = 0; R.air.forEach(a => land(R, a)); R.air = []; R.phase = 'done'; R.ev.push({ k: 'end' }); } // anything still in the air lands at the bell
 }
 
 function startReload(R, S) {
@@ -285,21 +298,29 @@ function loadShell(R, i, id) {
   S.load = id; return id;
 }
 
-// The player (or a ghost) pulls the trigger at x, y.
-function shoot(R, i, x, y) {
+// The player (or a ghost) lets fly at x, y. power: how hard the slingshot was pulled, 0 to 1.
+function shoot(R, i, x, y, power = 1) {
   const S = R.seats[i];
   if (R.phase !== 'go' || S.reloadT > 0 || S.pumpT > 0) return false;
   if (S.ammo <= 0) { startReload(R, S); return false; }
-  fire(R, S, x, y, S.kind === 'you' ? TAP_PAD : 0);
+  fire(R, S, x, y, S.kind === 'you' ? TAP_PAD : 0, lerp(FLIGHT_MAX, FLIGHT_MIN, Math.max(0, Math.min(1, power))));
   return true;
 }
+const flightFor = power => lerp(FLIGHT_MAX, FLIGHT_MIN, Math.max(0, Math.min(1, power)));
 
-function fire(R, S, x, y, pad = 0) {
+// The ball leaves now and lands after `flight` seconds; land() decides what it hit.
+function fire(R, S, x, y, pad = 0, flight = 0, tgt = null) {
   S.ammo--; S.shots++; S.pumpT = PUMP; S.ax = x; S.ay = y;
   let shell = S.load; S.load = null;
   if (shell) { const j = S.shells.indexOf(shell); if (j >= 0) S.shells.splice(j, 1); else if (S.kind !== 'ghost') shell = null; }
-  if (S.kind === 'you') R.rec.push({ mt: R.mt, fz: R.freeze, x, y, s: shell });
-  R.ev.push({ k: 'shot', seat: S.i, x, y, shell });
+  if (S.kind === 'you') R.rec.push({ mt: R.mt, fz: R.freeze, x, y, s: shell, f: flight });
+  R.ev.push({ k: 'shot', seat: S.i, x, y, shell, flight: R.freeze > 0 ? flight : flight / R.rate });
+  R.air.push({ S, x, y, shell, pad, left: flight, tgt });
+  if (S.ammo <= 0) startReload(R, S);
+}
+function land(R, a) {
+  const { S, x, y, shell, pad } = a;
+  R.ev.push({ k: 'land', seat: S.i, x, y });
   const mult = multOf(S);
   const res = resolve(R, S, x, y, shell, mult, pad);
   const before = mult;
@@ -309,7 +330,6 @@ function fire(R, S, x, y, pad = 0) {
   const after = multOf(S);
   if (after > before) R.ev.push({ k: 'combo', seat: S.i, mult: after });
   else if (after < before) R.ev.push({ k: 'drop', seat: S.i, mult: after });
-  if (S.ammo <= 0) startReload(R, S);
 }
 
 function hitAt(R, x, y, pad) {
@@ -392,12 +412,13 @@ function pick(R, S) {
     const t = T[sl.type];
     if (t.bad || sl.x < 14 || sl.x > W - 14) return;
     if (sl.vx) { const fx = sl.x + sl.vx * ai.react * 1.1; if (fx < 4 || fx > W - 4) return; } // about to leave
-    if (sl.rig.k === 'pop' && sl.left < ai.react * .9) return;                               // about to duck
+    if (sl.rig.k === 'pop' && sl.left < ai.react * .9 + NPC_FLIGHT) return;                  // about to duck
     if (t.fade && sl.alpha < .7) return;
     const val = Math.max(4, t.pts + (t.gift ? 12 : 0) + (t.time ? 8 : 0) + (sl.hp > 1 ? -15 : 0));
     let sc = Math.pow(val, ai.greed) / (1 + Math.hypot(sl.x - S.ax, sl.y - S.ay) / 220);
     if (side) sc *= (side < 0 ? sl.x < W * .55 : sl.x > W * .45) ? 1.35 : 1;
     if (R.seats.some(o => o !== S && o.aim && o.aim.sl === sl)) sc *= .4;
+    if (R.air.some(a => a.tgt === sl)) sc *= .15; // someone's ball is already on its way to it
     sc *= .7 + R.rnd() * .6;
     if (sc > bs) { bs = sc; best = sl; }
   });
@@ -415,12 +436,12 @@ function think(R, S, dt) {
     if (!standing(sl)) {
       // somebody got there first: usually they hold fire and pick again
       if (R.rnd() < .65) { S.cool = .1; return; }
-      fire(R, S, S.ax, S.ay);
+      fire(R, S, S.ax, S.ay, 0, NPC_FLIGHT);
     } else {
-      const t = T[sl.type], lead = sl.vx * .03; let x = sl.x + lead, y = sl.y;
+      const t = T[sl.type]; let x = sl.x + sl.vx * NPC_FLIGHT, y = sl.y + sl.vy * NPC_FLIGHT; // lead it: aim where it'll be when the ball arrives
       if (R.rnd() < ai.acc * (soot ? .5 : 1)) { x += (R.rnd() - .5) * t.rx * .7; y += (R.rnd() - .5) * t.ry * .7; }
       else { const a = R.rnd() * TAU, d = 1.15 + R.rnd() * 1.1; x += Math.cos(a) * t.rx * d; y += Math.sin(a) * t.ry * d; }
-      fire(R, S, x, y);
+      fire(R, S, x, y, 0, NPC_FLIGHT, sl);
     }
     S.cool = ai.gap * (.8 + R.rnd() * .5) * (soot ? 1.6 : 1);
     return;
@@ -443,7 +464,7 @@ function replay(R, S) {
   while (S.gi < g.length && R.mt >= g[S.gi].mt - 1e-6 && R.freeze <= (g[S.gi].fz || 0) + 1e-3) {
     const s = g[S.gi++];
     S.load = s.s || null; S.ammo = S.mag;
-    fire(R, S, s.x, s.y, TAP_PAD);
+    fire(R, S, s.x, s.y, TAP_PAD, s.f || 0);
   }
 }
 
@@ -461,6 +482,6 @@ const tickets = (score, place) => Math.floor(score / 25) + (place === 0 ? 10 : p
 function rivalSeat(id) { const r = RIVALS[id]; return { kind: 'npc', id, name: r.name, short: r.short, hat: r.hat, ai: r.ai, shells: r.shells || [] }; }
 
 return { W, GH, WH, ROUND, LAST_CALL, BELT, MAG, T, SHELLS, SHELL_IDS, UPS, RIVALS, BOOTHS, BOOTH, rng, hash,
-  newRound, step, shoot, reload, loadShell, results, multOf, beltSize, comboMax, reloadTime, rivalSeat, standing, eachSlot };
+  newRound, step, shoot, flightFor, reload, loadShell, results, multOf, beltSize, comboMax, reloadTime, rivalSeat, standing, eachSlot };
 })();
 if (typeof module !== 'undefined') module.exports = E;

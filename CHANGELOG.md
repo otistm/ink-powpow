@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.0
+- The ball really flies now. It leaves the pouch, shoots out through the prongs, shrinks as it goes away from you on a gentle arc, spins, and trails a few dots.
+- It only hits when it gets there, so moving targets will have moved on a little: aim slightly ahead of them, like real life.
+- Pull harder and the ball flies faster (about a fifth of a second at full pull); a gentle pull floats over more slowly.
+- Your rivals' balls fly too, in from their side of you. They aim ahead of moving targets.
+- The rubber band makes a twang when you let go.
+
+## 0.6.0
+- You shoot with a toy slingshot now instead of a rifle: a wooden Y with tape round the handle, black rubber bands and a leather pouch holding a cork.
+- It works like a real slingshot, and like the swing in Ink Nine: press anywhere, pull back, let go. The pouch sits right under your thumb as you pull, and the shot goes along the line from the pouch through the prongs: pull down to shoot higher, left to shoot right.
+- A dotted line and a ring show exactly where the shot will land while you pull.
+- Hold still for a moment mid-pull and it drops into a finer gear for small adjustments. The little wobble of your thumb lifting off is ignored. Let go without pulling back and nothing fires.
+- The pouch snaps out through the prongs with a wobble when you let go. The shot happens the instant you let go.
+- The whole gallery is in view now and doesn't move, and the slingshot sits low at the bottom of the screen.
+- The Pow! button is gone. Reload stays at the bottom, next to your shells.
+- Pass the rifle is now Pass the slingshot. The Long tube and Quick pump upgrades are now the Cork bag and Quick hands (they work the same).
+
 ## 0.5.0
 - Aiming works like a mouse now, with no delay at all. Drag a thumb anywhere: your sights move the instant it moves and stop the instant it stops. No more gliding.
 - Move slowly and the sights follow your thumb exactly, for fine aim. Flick quickly and they travel up to 4 times further, so a small thumb movement can swing across the whole booth.

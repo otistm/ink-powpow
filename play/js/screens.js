@@ -1,7 +1,7 @@
 /* =====================================================================
    The screens around the shooting: home, the booth intro, results, the
    shell cart, the grand prize, how to play, single booths, and Pass the
-   rifle (friends taking turns on one phone).
+   slingshot (friends taking turns on one phone).
    ===================================================================== */
 "use strict";
 const HATS_FRIENDS = ['none', 'cap', 'bow', 'goggles'];
@@ -24,7 +24,7 @@ function renderTitle() {
     </button>`).join('') + `
     <button class="event friends" id="friendsBtn" style="animation-delay:${E.BOOTHS.length * 50}ms">
       <span class="fr">${faceImg('cap', 'bf')}${faceImg('bow', 'bf')}</span>
-      <span class="ev"><b>Pass the rifle</b><i>2 to 4 friends, one phone</i>
+      <span class="ev"><b>Pass the slingshot</b><i>2 to 4 friends, one phone</i>
       <span>Take turns. Whoever went before you sits beside you, shooting exactly as they did.</span></span>
     </button>`;
   $('booths').querySelectorAll('[data-b]').forEach(b => b.onclick = () => { audioInit(); freePlay(+b.dataset.b); });
@@ -136,7 +136,7 @@ function cart() {
       const it = k === 's' ? E.SHELLS[id] : E.UPS[id], sold = run.sold[soldKey(id)], price = it.price;
       const can = !sold && run.tickets >= price && !(k === 's' && full);
       return `<button class="good${sold ? ' sold' : ''}${k === 'u' ? ' up' : ''}" data-k="${k}" data-id="${id}" ${can ? '' : 'disabled'} style="animation-delay:${i * 60}ms">
-        <span class="gi">${icon(id)}</span><span class="gt"><b>${it.name}</b><small>${k === 'u' ? 'Rifle upgrade, for the rest of the midway. ' : ''}${it.text}</small></span>
+        <span class="gi">${icon(id)}</span><span class="gt"><b>${it.name}</b><small>${k === 'u' ? 'Slingshot upgrade, for the rest of the midway. ' : ''}${it.text}</small></span>
         <span class="price">${sold ? 'Sold' : `${icon('ticket')}${price}`}</span></button>`;
     }).join('');
     $('cartBelt').innerHTML = `<span class="sub">Your belt ${run.shells.length} of ${run.ups.pockets ? 6 : E.BELT}${full ? ' (full)' : ''}</span>${beltHtml(run.shells)}`;
@@ -149,7 +149,7 @@ function cart() {
     });
   };
   draw();
-  $('cartNote').textContent = `Next: ${B.name}. Spend your tickets on shells, or fix up your rifle.`;
+  $('cartNote').textContent = `Next: ${B.name}. Spend your tickets on shells, or fix up your slingshot.`;
   $('cartGo').textContent = `On to ${B.name}`;
   $('cartGo').onclick = () => { saveRun('intro'); boothIntro(); };
   $('cartHome').onclick = renderTitle;
@@ -174,12 +174,12 @@ function freePlay(b) {
   go();
 }
 
-// ---------- pass the rifle ----------
+// ---------- pass the slingshot ----------
 let FR = null;
 function friendsSetup() {
   const st = { n: 2, booth: 0 };
   const draw = () => {
-    sheet(`<h2>Pass the rifle</h2>
+    sheet(`<h2>Pass the slingshot</h2>
       <p>Take turns on this phone. Whoever went before you sits beside you, shooting exactly as they did. Highest score wins.</p>
       <p class="evn">How many?</p>
       <div class="seg" id="segN">${[2, 3, 4].map(n => `<button class="${st.n === n ? 'on' : ''}" data-n="${n}" type="button">${n}</button>`).join('')}</div>
@@ -208,7 +208,7 @@ function friendsTurn() {
   const seat = (p, j) => p ? { kind: 'ghost', name: p.name, hat: p.hat, ghost: p.rec } : E.rivalSeat(B.rivals[j]);
   const L = seat(before[0], 0), Rt = seat(before[1], 1);
   sheet(`${faceImg(P.hat, 'bigface c')}
-    <h2>Pass the rifle to ${esc(P.name)}</h2>
+    <h2>Pass the slingshot to ${esc(P.name)}</h2>
     <p>${B.name}. On your left: ${esc(L.name)}. On your right: ${esc(Rt.name)}.</p>
     <button class="btn" id="frReady" type="button">I’m ${esc(P.name)}. Ready</button>`, false);
   $('frReady').onclick = () => {
@@ -242,9 +242,9 @@ function howTo() {
   const t = id => `<img class="ti" src="${targetURL(id)}" alt="">`;
   sheet(`<h2>How to play</h2>
     <div class="how">
-      <p><b>You’re on the middle stool, looking down your rifle.</b> Drag a thumb anywhere to aim: your sights follow it like a mouse, slow for fine aim, a quick flick to swing across the booth. Press the big Pow! button to fire. The shooters either side of you aim at the same targets, and whoever hits one first gets the points. Beat them both before the clock runs out.</p>
+      <p><b>You’re on the middle stool with a toy slingshot.</b> Press anywhere and pull back to aim, like a real slingshot: pull down to shoot higher, left to shoot right. A dotted line shows where it’ll land; let go to fire. The ball takes a moment to fly, so aim a little ahead of moving targets; pull harder and it flies faster. Hold still a moment for finer aim, and let go without pulling to call it off. The shooters either side of you aim at the same targets, and whoever hits one first gets the points. Beat them both before the clock runs out.</p>
       <p><b>Streaks.</b> 3 hits in a row doubles your points, 6 triples them. A miss starts you over.</p>
-      <p><b>Corks.</b> 6 a load. The rifle reloads when it’s empty, or press Reload, next to Pow!, to reload early (it’s quicker when the tube isn’t empty).</p>
+      <p><b>Corks.</b> 6 a load. The slingshot reloads when it’s empty, or press Reload to reload early (it’s quicker when you still have some left).</p>
       <p><b>Last call.</b> In the final 10 seconds the machinery speeds up.</p>
     </div>
     <p class="evn">Worth knowing</p>
