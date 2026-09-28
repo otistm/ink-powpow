@@ -192,50 +192,106 @@ function muzzleScreen(i) {
   if (i === 1) return yourRifle().muzzle;
   return [i === 0 ? -20 : V.cw + 20, V.ch * .62];
 }
-// Your rifle, seen from behind as you hold it up: the front post's tip is exactly where the cork lands.
+// Your rifle: a toy cork gun, built in 3D and seen from just behind and above it.
+// x is right, y is down, z is forward from your eye, in metres-ish. The barrel runs straight along z,
+// so it recedes toward your sights; both ring sights are centred on your eye line, so they frame the aim.
+const GUN = {
+  hb: .13, rb: .024,             // barrel: how far below your eye, and how thick
+  zb: .7, zm: 2.05,             // barrel: from where it leaves the stock to the muzzle
+  zs0: .3, zs1: .86,            // stock: near end (at your shoulder) and far end
+  ys0: .23, ys1: .165,          // stock: height of its top at each end (it slopes up away from you)
+  top: .02, side: .036, bev: .016, // stock: half-width of the flat top, half-width at the bevels, bevel depth
+  zr: .67, rr: .021,            // rear ring sight: where, and how big
+  zf: 1.9, rf: .018,
+  ax: .034, ay0: .098, ay1: .16, az0: .6, az1: .76, // the tin action block the barrel comes out of            // front ring sight
+};
 function yourRifle() {
-  const u = fgU(), [wx, wy] = sightNow(), [sx, sy] = screenXY(wx, wy), kick = AIM[1].kick * u * 1.8;
-  return { u, sx, sy, kick, muzzle: [sx, sy + 4 * u] };
+  const u = fgU(), [wx, wy] = sightNow(), [sx, sy] = screenXY(wx, wy);
+  const f = Math.min(V.ch * 1.24, V.cw * 2.2), dz = -AIM[1].kick * .005; // the rifle jolts back toward you when it fires
+  const pr = (x, y, z) => [sx + f * x / (z + dz), sy + f * y / (z + dz)];
+  return { u, sx, sy, f, dz, pr, muzzle: pr(0, GUN.hb - GUN.rb * .4, GUN.zm + .04) };
 }
 function drawYourRifle() {
-  const S = R.seats[1], g = yourRifle(), u = g.u, B = V.ch - g.sy + 30 * u; // B: from the sights down past the bottom of the screen
-  const P = pts => { ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x * u, y) : ctx.moveTo(x * u, y)); ctx.closePath(); };
-  const ink = (fill = '#fff') => { ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 2.6; ctx.strokeStyle = '#000'; ctx.stroke(); };
-  const shadow = f => { ctx.save(); ctx.translate(6 * u, 7 * u); f(); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore(); };
-  const hatchIn = (gap = 5, lean = .7) => { ctx.save(); ctx.clip(); ctx.beginPath(); for (let x = -400 * u; x < 400 * u; x += gap * u) { ctx.moveTo(x, -20 * u); ctx.lineTo(x + B * lean, B); } ctx.lineWidth = 1.1; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.restore(); };
-  const top = 58 * u, y = v => v * u;
-  ctx.save(); ctx.translate(g.sx, g.sy + g.kick); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-  // the two handguard rails, reaching out to the bottom corners
-  [-1, 1].forEach(sd => {
-    const rail = () => P([[sd * 84, y(100)], [sd * 97, y(96)], [sd * 196, B], [sd * 146, B]]);
-    shadow(rail); rail(); ink(); rail(); hatchIn(4.5, sd * .5);
-    rail(); ctx.lineWidth = 2.6; ctx.stroke();
-    P([[sd * 90, y(98)], [sd * 171, B]]); ctx.lineWidth = 1.4; ctx.stroke();
-  });
-  // the receiver, widening toward you, shaded on its left side
-  const body = () => P([[-46, top], [46, top], [84, B], [-84, B]]);
-  shadow(body); body(); ink();
-  ctx.save(); P([[-46, top], [-20, top], [-32, B], [-84, B]]); hatchIn(4, .35); ctx.restore();
-  body(); ctx.lineWidth = 2.6; ctx.stroke();
-  P([[-20, top], [-32, B]]); ctx.lineWidth = 1.4; ctx.stroke(); P([[20, top], [32, B]]); ctx.stroke();
-  // the top rail's ridges
-  for (let k = 0; k < 4; k++) { const yy = top + y(10 + k * 12), w = 24 + k * 3; P([[-w, yy], [w, yy]]); ctx.lineWidth = 3 * u; ctx.stroke(); }
-  // a round window on the receiver shows your corks
-  { const cy = Math.min(top + y(112), B - y(60)), r = 24 * u;
-    ctx.beginPath(); ctx.arc(4 * u, cy + 5 * u, r, 0, TAU); ctx.fillStyle = '#000'; ctx.fill();
-    ctx.beginPath(); ctx.arc(0, cy, r, 0, TAU); ink(); ctx.beginPath(); ctx.arc(0, cy, r - 5 * u, 0, TAU); ctx.lineWidth = 1.4; ctx.setLineDash([3 * u, 3 * u]); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    if (S.reloadT > 0) { ctx.beginPath(); ctx.arc(0, cy, r - 10 * u, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - S.reloadT / (S.reloadFull || 1))); ctx.lineWidth = 5 * u; ctx.stroke(); }
-    else { ctx.font = `900 ${Math.round(24 * u)}px Fraunces, Georgia, serif`; ctx.fillText(S.ammo, 0, cy + 1 * u); } }
-  // the rear sight: a block with two posts that frame the front post
-  const block = () => P([[-56, y(30)], [56, y(30)], [50, top], [-50, top]]);
-  shadow(block); block(); ink(); P([[-56, y(30)], [56, y(30)], [54, y(38)], [-54, y(38)]]); ink('#000');
-  [-1, 1].forEach(sd => { P([[sd * 34, y(32)], [sd * 44, y(32)], [sd * 50, y(-12)], [sd * 42, y(-14)]]); ink('#000'); });
-  // the front post, far off down the barrel; its tip is your aim
-  P([[-3, y(5)], [3, y(5)], [4.5, y(32)], [-4.5, y(32)]]); ink('#000');
-  ctx.restore();
-  // a tiny dot on the exact spot, so a thumb can find it
-  ctx.beginPath(); ctx.arc(g.sx, g.sy, 2.6 * u, 0, TAU); ctx.fillStyle = '#000'; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = '#fff'; ctx.stroke();
+  const S = R.seats[1], g = yourRifle(), { pr, f, dz } = g, G = GUN, u = g.u;
+  const Z = z => z + dz;
+  const poly = pts => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); };
+  const ink = (fill = '#fff', w = 2.4) => { ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = w; ctx.strokeStyle = '#000'; ctx.stroke(); };
+  const hatch = (gap, lean, w = 1) => { ctx.save(); ctx.clip(); ctx.beginPath(); for (let x = -V.ch; x < V.cw + V.ch; x += gap) { ctx.moveTo(x, 0); ctx.lineTo(x + V.ch * lean, V.ch); } ctx.lineWidth = w; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.restore(); };
+  // a cylinder along z, seen from above: its outline between two cross-sections
+  const tube = (y, r, z0, z1) => { const [cx, y0] = pr(0, y, z0), r0 = f * r / Z(z0), [, y1] = pr(0, y, z1), r1 = f * r / Z(z1);
+    ctx.beginPath(); ctx.moveTo(cx - r0, y0); ctx.lineTo(cx - r1, y1); ctx.arc(cx, y1, r1, Math.PI, 0); ctx.lineTo(cx + r0, y0); ctx.arc(cx, y0, r0, 0, Math.PI); ctx.closePath(); };
+  const seam = (y, r, z, w = 2) => { const [cx, yy] = pr(0, y, z), rr = f * r / Z(z); ctx.beginPath(); ctx.arc(cx, yy, rr, Math.PI, 0); ctx.lineWidth = w; ctx.strokeStyle = '#000'; ctx.stroke(); };
+  // a circle lying flat on a surface (a screw head), projected
+  const flat = (x, y, z, r) => { ctx.beginPath(); for (let i = 0; i <= 16; i++) { const a = i / 16 * TAU, p = pr(x + Math.cos(a) * r, y, z + Math.sin(a) * r); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); } ctx.closePath(); };
+  // a ring sight standing on a post, facing you
+  const ringSight = (z, r, band, baseY, postW) => {
+    const [cx, cy] = pr(0, 0, z), R = f * r / Z(z), bw = Math.max(3, f * band / Z(z));
+    const [px0, py0] = pr(-postW, r, z), [px1, py1] = pr(postW, baseY, z);
+    ctx.beginPath(); ctx.rect(px0, py0, px1 - px0, py1 - py0); ink('#000', 1.4);
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.lineWidth = bw + 4.4; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.lineWidth = bw; ctx.strokeStyle = '#fff'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, R + bw / 2, Math.PI * .8, Math.PI * 1.35); ctx.lineWidth = 1.6; ctx.strokeStyle = '#000'; ctx.stroke(); // a little shading on the ring
+  };
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  const loaded = S.ammo > 0 && S.reloadT <= 0;
+
+  // --- first the stock: a chunky bevelled block of wood under the barrel, sloping down toward your shoulder
+  const T = (x, t) => { const z = G.zs0 + (G.zs1 - G.zs0) * t, y = G.ys0 + (G.ys1 - G.ys0) * t; return [x, y, z]; };
+  const P = ([x, y, z], dy = 0) => pr(x, y + dy, z);
+  const nl = T(-G.top, 0), nr = T(G.top, 0), fl = T(-G.top, 1), fr = T(G.top, 1);
+  const nL = T(-G.side, 0), nR = T(G.side, 0), fL = T(-G.side, 1), fR = T(G.side, 1);
+  // shadow
+  ctx.save(); ctx.translate(6 * u, 7 * u); poly([P(nL, G.bev), P(fL, G.bev), P(fl), P(fr), P(fR, G.bev), P(nR, G.bev), P(nR, .6), P(nL, .6)]); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
+  // the end facing you (your shoulder end), mostly below the screen
+  poly([P(nl), P(nr), P(nR, G.bev), P(nR, .6), P(nL, .6), P(nL, G.bev)]); ink();
+  { const a = P(nL, G.bev + .03), b = P(nR, G.bev + .03), c = P(nR, .6), d = P(nL, .6); poly([a, b, c, d]); ink('#000'); } // a rubber butt pad
+  // the two bevels: the left one in shadow
+  poly([P(nl), P(fl), P(fL, G.bev), P(nL, G.bev)]); ink(); poly([P(nl), P(fl), P(fL, G.bev), P(nL, G.bev)]); hatch(3, .5, 1.1);
+  poly([P(nl), P(fl), P(fL, G.bev), P(nL, G.bev)]); ctx.lineWidth = 2.4; ctx.stroke();
+  poly([P(nr), P(fr), P(fR, G.bev), P(nR, G.bev)]); ink(); poly([P(nr), P(fr), P(fR, G.bev), P(nR, G.bev)]); hatch(7, .5, .9);
+  poly([P(nr), P(fr), P(fR, G.bev), P(nR, G.bev)]); ctx.lineWidth = 2.4; ctx.stroke();
+  // the flat top, with wood grain running away from you
+  poly([P(nl), P(nr), P(fr), P(fl)]); ink();
+  ctx.beginPath(); [-.016, -.005, .009, .019].forEach((x, i) => { for (let k = 0; k <= 10; k++) { const t = k / 10, p = P(T(x + Math.sin(t * 5 + i) * .002, t)); k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); } }); ctx.lineWidth = 1; ctx.strokeStyle = '#000'; ctx.stroke();
+  // the far end of the stock, where the barrel goes in: a tin collar
+  { const a = P(fl), b = P(fr), c = P(fR, G.bev), d = P(fL, G.bev); ctx.beginPath(); ctx.moveTo(d[0], d[1]); ctx.lineTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(c[0], c[1]); ctx.lineWidth = 3.4; ctx.strokeStyle = '#000'; ctx.stroke(); }
+  // screws
+  [[-.017, .32], [.017, .32], [0, .78]].forEach(([x, t]) => { const [px, py, pz] = T(x, t); flat(px, py, pz, .0065); ink('#fff', 1.6); const a = pr(px - .005, py, pz), b = pr(px + .005, py, pz); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineWidth = 1.4; ctx.stroke(); });
+  // --- then the barrel resting on it: the cork sticking out of the muzzle, the barrel, the front sight, the cork's string
+  if (loaded) { tube(G.hb, G.rb * 1.15, G.zm - .01, G.zm + .05); ink(); tube(G.hb, G.rb * 1.15, G.zm - .01, G.zm + .05); ctx.save(); ctx.clip(); for (let i = 0; i < 7; i++) { const p = pr((i % 3 - 1) * .012, G.hb - G.rb * (.3 + (i % 2) * .5), G.zm + .005 + i * .006); ctx.beginPath(); ctx.arc(p[0], p[1], 1.2, 0, TAU); ctx.fillStyle = '#000'; ctx.fill(); } ctx.restore(); }
+  // the barrel: candy stripes that get shorter as they go away from you
+  tube(G.hb, G.rb, G.zb, G.zm); ctx.save(); ctx.translate(4 * u, 5 * u); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
+  tube(G.hb, G.rb, G.zb, G.zm); ink();
+  const bands = 9;
+  for (let i = 0; i < bands; i++) {
+    const z0 = G.zb + (G.zm - G.zb) * i / bands, z1 = G.zb + (G.zm - G.zb) * (i + 1) / bands;
+    if (i % 2) { tube(G.hb, G.rb, z0, z1); hatch(3.2, -.6, 1.1); }
+    seam(G.hb, G.rb, z0, 1.6);
+  }
+  // a shine along the top of the barrel, and the shadow side
+  { const a = pr(-.006, G.hb - G.rb * .96, G.zb), b = pr(-.004, G.hb - G.rb * .96, G.zm); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineWidth = 3 * u; ctx.strokeStyle = '#fff'; ctx.stroke(); }
+  tube(G.hb, G.rb, G.zb, G.zm); ctx.lineWidth = 2.6; ctx.strokeStyle = '#000'; ctx.stroke();
+  // the muzzle rim
+  { const [cx, cy] = pr(0, G.hb, G.zm), R = f * G.rb * 1.2 / Z(G.zm); ctx.beginPath(); ctx.arc(cx, cy, R, Math.PI, 0); ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.stroke(); }
+  ringSight(G.zf, G.rf, .006, G.hb - G.rb, .003);
+  // the cork's string, sagging from the muzzle back to a screw on the stock
+  if (loaded) { ctx.beginPath(); for (let i = 0; i <= 12; i++) { const t = i / 12, z = G.zm - t * (G.zm - .62), sag = Math.sin(t * Math.PI) * .05, p = pr(.03 * t + .004, G.hb + G.rb * .6 + sag - t * .005, z); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); } ctx.lineWidth = 1.5; ctx.strokeStyle = '#000'; ctx.stroke(); }
+
+  // --- the tin action block the barrel comes out of, sitting on the stock
+  { const A = (x, y, z) => pr(x, y, z);
+    const tl0 = A(-G.ax, G.ay0, G.az0), tr0 = A(G.ax, G.ay0, G.az0), tl1 = A(-G.ax, G.ay0, G.az1), tr1 = A(G.ax, G.ay0, G.az1);
+    const bl0 = A(-G.ax, G.ay1, G.az0), br0 = A(G.ax, G.ay1, G.az0);
+    ctx.save(); ctx.translate(5 * u, 6 * u); poly([tl1, tr1, tr0, br0, bl0, tl0]); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
+    poly([tl0, tr0, br0, bl0]); ink(); poly([tl0, tr0, br0, bl0]); hatch(3.4, -.5, 1.1); poly([tl0, tr0, br0, bl0]); ctx.lineWidth = 2.6; ctx.stroke(); // the end facing you, in shadow
+    poly([tl0, tr0, tr1, tl1]); ink();                                                                                                        // the top
+    // a groove down the middle of the top, and rivets at the corners
+    { const a = A(0, G.ay0, G.az0), b = A(0, G.ay0, G.az1); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineWidth = 1.2; ctx.stroke(); }
+    [[-1, .63], [1, .63], [-1, .73], [1, .73]].forEach(([sd, z]) => { flat(sd * (G.ax - .009), G.ay0, z, .005); ink('#000', 1); });
+    // the cocking knob sticking out on the right
+    { const k = A(G.ax + .012, G.ay0 + .02, G.az0 + .05), r = f * .012 / Z(G.az0 + .05); ctx.beginPath(); ctx.arc(k[0], k[1], r, 0, TAU); ink(); ctx.beginPath(); ctx.arc(k[0] - r * .3, k[1] - r * .3, r * .35, 0, TAU); ctx.fillStyle = '#000'; ctx.fill(); } }
+  // the rear ring sight, nearest to your eye, standing on the action block
+  ringSight(G.zr, G.rr, .0045, G.ay0, .0028);
+  // while reloading, a ring fills around the rear sight
+  if (S.reloadT > 0) { const [cx, cy] = pr(0, 0, G.zr), R0 = f * G.rr / Z(G.zr) + 12 * u; ctx.beginPath(); ctx.arc(cx, cy, R0, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - S.reloadT / (S.reloadFull || 1))); ctx.lineWidth = 4 * u; ctx.strokeStyle = '#000'; ctx.stroke(); }
 }
 
 function drawCounterFg() {

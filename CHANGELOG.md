@@ -1,10 +1,12 @@
 # Changelog
 
 ## 0.2.0
-- Shooting is first person now. You hold the rifle straight out in front of you: two rear sight posts frame the front post, and the view swings round to follow where you aim.
+- Shooting is first person now. You hold a toy cork gun straight out in front of you, and the view swings round to follow where you aim.
+- The gun is drawn in proper perspective, pointing away from you: a bevelled wooden stock with screws, a tin action block with a cocking knob, a candy-striped barrel whose stripes get shorter into the distance, and a fat cork in the muzzle tied back with a string.
+- Round ring sights: a big ring near your eye and a small ring out on the barrel. Line them up on a target and let go.
 - Drag anywhere to move your sights, let go to fire. A quick tap fires where the sights already are. On a computer, move the mouse and click, or use the arrow keys and space.
-- The sights wobble a little, like holding a real rifle up. A small dot on the front post's tip shows exactly where the cork will land.
-- A round window on the rifle shows how many corks you have left, and fills up as you reload.
+- The sights wobble a little, like holding a real rifle up. The gun jolts back toward you when it fires.
+- The cork disappears from the muzzle while you reload, and a ring fills in around the sights.
 - Your rivals are out of sight now. They still shoot the same targets; their corks fly in from the side they sit on.
 - Soot bombs now land on your view itself, like ink on the lens.
 
