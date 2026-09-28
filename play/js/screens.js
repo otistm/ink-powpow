@@ -242,7 +242,7 @@ function howTo() {
   const t = id => `<img class="ti" src="${targetURL(id)}" alt="">`;
   sheet(`<h2>How to play</h2>
     <div class="how">
-      <p><b>You’re on the middle stool with a toy slingshot.</b> Press anywhere and pull back to aim, like a real slingshot: pull down to shoot higher, left to shoot right. A dotted line shows where it’ll land; let go to fire. Hold still a moment for finer aim, and let go without pulling to call it off. The shooters either side of you aim at the same targets, and whoever hits one first gets the points. Beat them both before the clock runs out.</p>
+      <p><b>You’re on the middle stool with a toy slingshot.</b> Press anywhere and pull back to aim, like a real slingshot: pull down to shoot higher, left to shoot right. A dotted line shows where it’ll land; let go to fire. The ball takes a moment to fly, so aim a little ahead of moving targets; pull harder and it flies faster. Hold still a moment for finer aim, and let go without pulling to call it off. The shooters either side of you aim at the same targets, and whoever hits one first gets the points. Beat them both before the clock runs out.</p>
       <p><b>Streaks.</b> 3 hits in a row doubles your points, 6 triples them. A miss starts you over.</p>
       <p><b>Corks.</b> 6 a load. The slingshot reloads when it’s empty, or press Reload to reload early (it’s quicker when you still have some left).</p>
       <p><b>Last call.</b> In the final 10 seconds the machinery speeds up.</p>

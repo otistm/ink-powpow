@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+- The ball really flies now. It leaves the pouch, shoots out through the prongs, shrinks as it goes away from you on a gentle arc, spins, and trails a few dots.
+- It only hits when it gets there, so moving targets will have moved on a little: aim slightly ahead of them, like real life.
+- Pull harder and the ball flies faster (about a fifth of a second at full pull); a gentle pull floats over more slowly.
+- Your rivals' balls fly too, in from their side of you. They aim ahead of moving targets.
+- The rubber band makes a twang when you let go.
+
 ## 0.6.0
 - You shoot with a toy slingshot now instead of a rifle: a wooden Y with tape round the handle, black rubber bands and a leather pouch holding a cork.
 - It works like a real slingshot, and like the swing in Ink Nine: press anywhere, pull back, let go. The pouch sits right under your thumb as you pull, and the shot goes along the line from the pouch through the prongs: pull down to shoot higher, left to shoot right.

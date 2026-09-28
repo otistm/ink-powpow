@@ -34,6 +34,7 @@ function sfx(k, seat = 1, p = 1) {
   const pan = SEAT_PAN[seat], v = seat === 1 ? 1 : .45;
   switch (k) {
     case 'pop': noise(.07, .5 * v, 2200, .8, pan); tone(320, .08, 'triangle', .22 * v, 90, pan); break;
+    case 'twang': tone(150, .16, 'triangle', .26 * v, 70, pan); tone(420, .09, 'sawtooth', .04 * v, 160, pan); noise(.06, .35 * v, 900, 1.2, pan); break; // the rubber band letting go
     case 'tin': tone(1480 + Math.random() * 300, .16, 'square', .045 * v, null, pan); tone(2300 + Math.random() * 400, .12, 'triangle', .07 * v, null, pan); noise(.05, .2 * v, 4000, 2, pan); break;
     case 'clank': tone(420, .25, 'square', .06 * v, 380, pan); tone(900, .2, 'triangle', .08 * v, null, pan); noise(.08, .3 * v, 1500, 1.5, pan); break;
     case 'bell': [880, 1320, 2640].forEach((f, i) => tone(f, 1.4 - i * .3, 'sine', .14 / (i + 1) * v, null, pan)); break;

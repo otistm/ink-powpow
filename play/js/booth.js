@@ -269,7 +269,26 @@ function drawCounterFg() {
   ctx.beginPath(); ctx.rect(-4, y, V.cw + 8, 18 * u); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#000'; ctx.stroke();
   ctx.beginPath(); ctx.moveTo(0, y + 29 * u); ctx.lineTo(V.cw, y + 29 * u); ctx.setLineDash([8 * u, 6 * u]); ctx.lineDashOffset = -shift; ctx.lineWidth = 1.6; ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
 }
-// cork lines are drawn in screen space, from each rifle's muzzle to where the cork landed
+// Balls in flight, in screen space. They fly away from you, so they rush out at first and slow as they get far,
+// shrinking all the way, on a gentle arc that rises and drops back onto the aim point.
+function drawBalls() {
+  const u = fgU(), Z0 = .6, Z1 = 3.2; // how near the ball starts and how far away the back wall is
+  for (const f of FX) {
+    if (f.k !== 'ball') continue;
+    const [ex, ey] = screenXY(f.x1, f.y1), [sx, sy] = f.from, arc = Math.min(70 * u, Math.hypot(ex - sx, ey - sy) * .22);
+    const at = t => { const q = (Z0 / (Z0 + (Z1 - Z0) * t) - Z0 / Z1) / (1 - Z0 / Z1); // 1 at the start, 0 on arrival
+      return [ex + (sx - ex) * q, ey + (sy - ey) * q - Math.sin(Math.PI * t) * arc * (1 - t * .3), q]; };
+    const t = Math.min(1, f.t / f.life), rNear = (f.seat === 1 ? 13 : 10) * u, rFar = Math.max(2, 4 * V.k);
+    // a short trail of fading dots behind it
+    for (let i = 3; i >= 1; i--) { const tt = Math.max(0, t - i * .06), [x, y, q] = at(tt), r = rFar + (rNear - rFar) * q;
+      ctx.globalAlpha = .18 * (4 - i); ctx.beginPath(); ctx.arc(x, y, r * .7, 0, TAU); ctx.fillStyle = '#000'; ctx.fill(); }
+    ctx.globalAlpha = 1;
+    const [x, y, q] = at(t), r = rFar + (rNear - rFar) * q;
+    ctx.beginPath(); ctx.arc(x + r * .25, y + r * .3, r, 0, TAU); ctx.fillStyle = '#000'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = Math.max(1.2, r * .22); ctx.strokeStyle = '#000'; ctx.stroke();
+    if (r > 4) { const a = f.t * 18; ctx.beginPath(); ctx.arc(x, y, r * .6, a, a + 1.8); ctx.lineWidth = Math.max(1, r * .15); ctx.stroke(); } // it spins
+  }
+}
 function drawShotLines() {
   for (const f of FX) {
     if (f.k !== 'line') continue;
@@ -294,6 +313,7 @@ function drawFx(dt) {
     const u = f.t / f.life;
     ctx.save();
     if (f.k === 'line') { /* drawn in the foreground, see drawShotLines */ }
+    else if (f.k === 'ball') { /* drawn in the foreground, see drawBalls */ }
     else if (f.k === 'puff') { const r = f.r * (.5 + u); ctx.globalAlpha = 1 - u; ctx.beginPath(); ctx.arc(f.x, f.y - u * 10, r, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 1.8; ctx.strokeStyle = '#000'; ctx.stroke(); }
     else if (f.k === 'ring') { ctx.globalAlpha = 1 - u; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (.3 + u * .9), 0, TAU); ctx.lineWidth = 6 * (1 - u) + 1; ctx.strokeStyle = '#000'; ctx.setLineDash(f.dash ? [5, 6] : []); ctx.stroke();
       if (!f.dash) for (let i = 0; i < 12; i++) { const a = i / 12 * TAU, r0 = f.r * (.4 + u), r1 = r0 + 12 * (1 - u); ctx.beginPath(); ctx.moveTo(f.x + Math.cos(a) * r0, f.y + Math.sin(a) * r0); ctx.lineTo(f.x + Math.cos(a) * r1, f.y + Math.sin(a) * r1); ctx.lineWidth = 2.4; ctx.stroke(); } }
@@ -356,7 +376,7 @@ function draw(dt = 0) {
   drawFx(dt);
   // the foreground, in screen pixels
   ctx.setTransform(V.D, 0, 0, V.D, 0, 0);
-  drawCounterFg(); drawShotLines(); drawSling(); drawBlots();
+  drawCounterFg(); drawShotLines(); drawSling(); drawBalls(); drawBlots();
   drawFloats();
 }
 
@@ -368,9 +388,9 @@ function onEvents() {
     switch (e.k) {
       case 'shot': {
         AIM[seat].x = e.x; AIM[seat].y = e.y; AIM[seat].kick = 9;
-        fx({ k: 'line', x1: e.x, y1: e.y, seat, life: .16 });
-        fx({ k: 'puff', x: e.x, y: e.y, r: 5, life: .25 });
-        sfx('pop', seat);
+        // the ball flies from the pouch (or from a rival's side of you) to where it was aimed
+        fx({ k: 'ball', seat, from: (mine && LAUNCH) || muzzleScreen(seat), x1: e.x, y1: e.y, life: Math.max(.08, e.flight || .2) });
+        sfx('twang', seat);
         break; }
       case 'hit': {
         const t = E.T[e.type];
@@ -384,6 +404,7 @@ function onEvents() {
         if (mine) squash($('pl1'));
         break; }
       case 'dent': sfx('clank', seat); floatText(e.x, e.y - 22, mine ? '+5 dent' : 'dent', mine ? 'solid' : 'ghost'); burst(e.x, e.y, 4); break;
+      case 'land': fx({ k: 'puff', x: e.x, y: e.y, r: 5, life: .25 }); break;
       case 'miss': HOLES.push({ x: e.x, y: e.y, t: 0, a: Math.random() * 6 }); sfx('miss', seat); break;
       case 'pellet': fx({ k: 'puff', x: e.x, y: e.y, r: 4, life: .25 }); break;
       case 'boom': sfx('boom', seat); fx({ k: 'ring', x: e.x, y: e.y, r: 70, life: .5 }); burst(e.x, e.y, 16); SHAKE = 7; break;
@@ -471,12 +492,16 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 // Touch or mouse: press anywhere (not on a button) to take hold of the pouch, pull back to aim, let go to fire.
 // Letting go without pulling back fires nothing. Keyboard: arrows to aim, space or enter to fire.
 const clampSight = () => { SIGHT.x = Math.max(4, Math.min(E.W - 4, SIGHT.x)); SIGHT.y = Math.max(30, Math.min(E.GH - 4, SIGHT.y)); };
-function pull() {
+// power: how hard you pulled (0 to 1); from: where on screen the ball leaves (the pouch)
+let LAUNCH = null;
+function pull(power = 1, from = null) {
   if (!R || paused || R.phase !== 'go') return;
   const S = R.seats[1];
   if (S.reloadT > 0) { sfx('empty'); nope($('tube')); return; }
   const [x, y] = sightNow();
-  E.shoot(R, 1, x, y);
+  LAUNCH = from;
+  E.shoot(R, 1, x, y, power);
+  LAUNCH = null;
   hideTip();
 }
 // the shot goes along the line from the pouch through the gap: pull down and left to aim up and right
@@ -531,8 +556,10 @@ const letGo = fire => e => {
   if (fire) { liftSettle(d); aimFromPull(); }
   SIGHT.drag = null; SLING.px = d.px; SLING.py = d.py; SLING.vx = SLING.vy = 0;
   if (!fire) return;
-  if (Math.hypot(d.px, d.py) < PULL.SLACK) { sfx('tick'); return; } // let go without pulling back: nothing fires
-  pull();
+  const m = Math.hypot(d.px, d.py);
+  if (m < PULL.SLACK) { sfx('tick'); return; } // let go without pulling back: nothing fires
+  const [gx, gy] = gapXY();
+  pull(Math.min(1, m / (pullMax() * .75)), [gx + d.px, gy + 20 * fgU() + d.py - 8 * fgU()]);
 };
 PLAYEL.addEventListener('pointerup', letGo(true));
 PLAYEL.addEventListener('pointercancel', letGo(false));
@@ -574,6 +601,7 @@ function startRound(o) {
     sheet(`<h2>Step right up</h2>
       <div class="how">
         <p><b>Press anywhere and pull back, like a real slingshot.</b> Pull down to shoot higher, left to shoot right. A dotted line shows where it’ll land. Let go to fire.</p>
+        <p>The ball takes a moment to fly, so aim a little ahead of moving targets. Pull harder and it flies faster.</p>
         <p>Hold still for a moment while pulling for finer aim. Let go without pulling back and nothing fires.</p>
         <p>6 corks a load. It reloads by itself when you run out, or press Reload.</p>
         <p>Knock down more than the rivals either side of you before the clock runs out.</p>
