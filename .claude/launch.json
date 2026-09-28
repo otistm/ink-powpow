@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ink-gallery",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8041"],
+      "port": 8041
+    }
+  ]
+}

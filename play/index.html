@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ink Gallery: step right up, knock ’em down</title>
+<meta name="theme-color" content="#ffffff">
+<meta name="description" content="Step right up. Knock ’em down. Win the big bear.">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ink Gallery">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,800;0,9..144,900;1,9..144,900&family=Figtree:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<section id="title" class="screen on">
+  <div class="home">
+    <h1 class="logo">Ink Gallery</h1>
+    <p class="tag">Step right up. Knock ’em down. Win the big bear.</p>
+    <div class="shelf" id="shelf"></div>
+    <p class="sub shelfnote" id="shelfNote"></p>
+    <button class="btn main" id="mainBtn" type="button">Walk the midway</button>
+    <p class="kick">Or try a single booth</p>
+    <div class="events" id="booths"></div>
+    <div class="homelinks"><button class="linkbtn" id="howBtn" type="button">How to play</button></div>
+    <div class="toggles" id="homeToggles"></div>
+    <div class="foot-note">Best on a phone, held upright. Sound on.</div>
+    <div class="ver" id="ver"></div>
+  </div>
+</section>
+
+<section id="intro" class="screen">
+  <div class="panel" id="introPanel"></div>
+</section>
+
+<section id="play" class="screen">
+  <div class="scores" id="scores"></div>
+  <div class="fuse" id="fuse"><span class="rope"><i id="fuseBar"></i></span><b id="secs">40</b></div>
+  <div class="stage" id="stage"><canvas id="cv" aria-label="The shooting gallery. Tap a target to shoot it."></canvas></div>
+  <p class="loadnote" id="loadNote"></p>
+  <div class="belt">
+    <button class="tube" id="tube" type="button" aria-label="Reload"><span class="corks" id="corks"></span><span class="tf"><i id="tubeFill"></i></span><small id="tubeLbl">Corks</small></button>
+    <div class="shells" id="shells"></div>
+    <button id="pause" type="button" aria-label="Pause">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="9" y="8" width="5" height="16" rx="1.5" fill="currentColor"/><rect x="18" y="8" width="5" height="16" rx="1.5" fill="currentColor"/></svg>
+    </button>
+  </div>
+</section>
+
+<section id="cart" class="screen">
+  <div class="shophead"><h2>The shell cart</h2><span class="tk big2" id="cartTickets"></span></div>
+  <p class="sub" id="cartNote"></p>
+  <div class="goods" id="goods"></div>
+  <div class="cartbelt" id="cartBelt"></div>
+  <button class="btn" id="cartGo" type="button">On</button>
+  <button class="linkbtn center" id="cartHome" type="button">Back to the home screen</button>
+</section>
+
+<div class="banner" id="banner"></div>
+<div class="tip" id="tip" role="status"></div>
+<div class="veil" id="veil"><div class="panel" id="sheet"></div></div>
+
+<!-- Order matters: each script can only use what the scripts above it define while loading. main.js is always last. -->
+<script src="js/config.js"></script>
+<script src="js/gallery.js"></script>
+<script src="js/art.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/booth.js"></script>
+<script src="js/screens.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
