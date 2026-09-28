@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+- New controls, to try out. Drag a thumb anywhere on the screen to aim; letting go no longer fires.
+- A big round Pow! button fires, under your right thumb. It fires the moment you press it, and you can keep aiming with the other thumb at the same time.
+- Reload sits right next to Pow!, showing your corks. The Pow! button goes hollow while you reload.
+- Shells sit to the left of Reload, and pause has moved up beside the clock.
+
 ## 0.2.1
 - The game is now called Ink Powpow. New tagline: Aim. Shoot. Win prizes.
 - Your prizes, best scores and a midway in progress carry over.

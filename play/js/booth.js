@@ -1,7 +1,7 @@
 /* =====================================================================
    The booth, seen first person: a camera zoomed into the gallery follows
    your sights; your rifle, the counter and your rivals' shoulders are in
-   the foreground. Drag to aim, let go to fire. Also the effects, the
+   the foreground. Drag anywhere to aim, press Pow! to fire. Also the effects, the
    scoreboard and the shell belt.
    startRound() runs a round; the rules themselves are in gallery.js.
    ===================================================================== */
@@ -487,7 +487,8 @@ function hud(force) {
   if ($('corks').dataset.k !== S.ammo + '/' + S.mag + reloading) { $('corks').innerHTML = ck; $('corks').dataset.k = S.ammo + '/' + S.mag + reloading; }
   $('tube').classList.toggle('reloading', reloading);
   $('tubeFill').style.transform = `scaleX(${reloading ? 1 - S.reloadT / (S.reloadFull || 1) : 0})`;
-  $('tubeLbl').textContent = reloading ? 'Reloading' : S.ammo < S.mag ? 'Tap to reload' : 'Corks';
+  $('tubeLbl').textContent = reloading ? 'Reloading' : 'Reload';
+  $('fire').classList.toggle('empty', reloading);
   // shells
   const sk = S.shells.join() + '|' + S.load + '|' + E.beltSize(S);
   if (force || sk !== HUD.shells) {
@@ -505,8 +506,8 @@ function hud(force) {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------- input ----------
-// Touch: put a thumb down anywhere, drag to move your sights, let go to fire. A quick tap fires where they are.
-// Mouse: move to aim, click to fire. Keyboard: arrows to aim, space or enter to fire.
+// Touch: drag anywhere on the screen (not on a button) to move your sights; nothing fires until you press Pow!.
+// Two thumbs work at once: one dragging, one on the button. Mouse: move to aim, click to fire. Keyboard: arrows, space or enter.
 const clampSight = () => { SIGHT.x = Math.max(4, Math.min(E.W - 4, SIGHT.x)); SIGHT.y = Math.max(30, Math.min(E.GH - 4, SIGHT.y)); };
 function pull() {
   if (!R || paused || R.phase !== 'go') return;
@@ -516,23 +517,29 @@ function pull() {
   E.shoot(R, 1, x, y);
   hideTip();
 }
-cv.addEventListener('pointerdown', e => {
+const PLAYEL = $('play');
+PLAYEL.addEventListener('pointerdown', e => {
   audioInit();
-  if (!R || paused) return;
-  if (e.pointerType === 'mouse') { if (e.button === 0) pull(); return; }
+  if (!R || paused || e.target.closest('button')) return;
+  if (e.pointerType === 'mouse') { if (e.button === 0 && e.target === cv) pull(); return; }
   if (SIGHT.drag) return;
-  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  try { PLAYEL.setPointerCapture(e.pointerId); } catch (_) {}
   SIGHT.drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
 });
-cv.addEventListener('pointermove', e => {
+PLAYEL.addEventListener('pointermove', e => {
   if (!R || paused) return;
-  if (e.pointerType === 'mouse') { SIGHT.x += (e.movementX || 0) / V.k; SIGHT.y += (e.movementY || 0) / V.k; clampSight(); return; }
+  if (e.pointerType === 'mouse') { if (e.target === cv) { SIGHT.x += (e.movementX || 0) / V.k; SIGHT.y += (e.movementY || 0) / V.k; clampSight(); } return; }
   const d = SIGHT.drag; if (!d || d.id !== e.pointerId) return;
   SIGHT.x += (e.clientX - d.x) * DRAG / V.k; SIGHT.y += (e.clientY - d.y) * DRAG / V.k; d.x = e.clientX; d.y = e.clientY; clampSight();
 });
-const letGo = fire => e => { const d = SIGHT.drag; if (!d || d.id !== e.pointerId) return; SIGHT.drag = null; if (fire) pull(); };
-cv.addEventListener('pointerup', letGo(true));
-cv.addEventListener('pointercancel', letGo(false));
+const letGo = e => { const d = SIGHT.drag; if (d && d.id === e.pointerId) SIGHT.drag = null; };
+PLAYEL.addEventListener('pointerup', letGo);
+PLAYEL.addEventListener('pointercancel', letGo);
+// the fire button fires the moment it's pressed, not on release, so it feels like a trigger
+const FIRE = $('fire');
+FIRE.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); FIRE.classList.add('down'); pull(); });
+['pointerup', 'pointercancel', 'pointerleave'].forEach(t => FIRE.addEventListener(t, () => FIRE.classList.remove('down')));
+FIRE.addEventListener('click', e => { if (e.detail === 0) pull(); }); // a keyboard press on the focused button
 addEventListener('keyup', e => { SIGHT.keys[e.key] = false; });
 $('tube').onclick = () => { if (R && !paused && E.reload(R, 1)) squash($('tube')); };
 $('shells').onclick = e => {
@@ -570,12 +577,12 @@ function startRound(o) {
     paused = true;
     sheet(`<h2>Step right up</h2>
       <div class="how">
-        <p><b>Drag to aim, let go to fire.</b> Put your thumb down anywhere and slide it to move your sights. A quick tap fires where they already are.</p>
+        <p><b>Drag anywhere to aim.</b> Slide a thumb anywhere on the screen to move your sights.</p>
+        <p><b>Press Pow! to fire.</b> Reload is right beside it, or it reloads by itself when you run out.</p>
         <p>Knock down more than the rivals either side of you before the clock runs out.</p>
         <p>They shoot the same targets as you. If they get there first, it’s theirs.</p>
         <p><b>Hit 3 in a row</b> and your points double. 6 in a row triples them. A miss starts you over.</p>
         <p><b>Black targets cost points.</b> Leave them be.</p>
-        <p>6 corks a load. It reloads by itself, or tap the corks to reload early.</p>
       </div>
       <button class="btn" id="goBtn" type="button">Ready</button>`, false);
     $('goBtn').onclick = () => { save.tips.firstRound = 1; writeSave(); closeSheet(); paused = false; lastT = performance.now(); };
