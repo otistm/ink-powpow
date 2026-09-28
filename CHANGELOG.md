@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+- Aiming works like a mouse now, with no delay at all. Drag a thumb anywhere: your sights move the instant it moves and stop the instant it stops. No more gliding.
+- Move slowly and the sights follow your thumb exactly, for fine aim. Flick quickly and they travel up to 4 times further, so a small thumb movement can swing across the whole booth.
+- The sights no longer wobble.
+- The stick drawing is gone, since there's nothing to tilt any more.
+
 ## 0.4.1
 - Aiming is snappier. The view stays locked on your sights instead of drifting after them.
 - Moving your thumb nudges the sights straight away; holding the stick tilted keeps them gliding. Small tilts get going sooner, and full tilt is a little faster.

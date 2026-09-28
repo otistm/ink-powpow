@@ -242,7 +242,7 @@ function howTo() {
   const t = id => `<img class="ti" src="${targetURL(id)}" alt="">`;
   sheet(`<h2>How to play</h2>
     <div class="how">
-      <p><b>You’re on the middle stool, looking down your rifle.</b> Put a thumb down anywhere and a stick appears under it: tilt it to steer your sights, a little for fine aim, all the way to swing fast. Press the big Pow! button to fire. The shooters either side of you aim at the same targets, and whoever hits one first gets the points. Beat them both before the clock runs out.</p>
+      <p><b>You’re on the middle stool, looking down your rifle.</b> Drag a thumb anywhere to aim: your sights follow it like a mouse, slow for fine aim, a quick flick to swing across the booth. Press the big Pow! button to fire. The shooters either side of you aim at the same targets, and whoever hits one first gets the points. Beat them both before the clock runs out.</p>
       <p><b>Streaks.</b> 3 hits in a row doubles your points, 6 triples them. A miss starts you over.</p>
       <p><b>Corks.</b> 6 a load. The rifle reloads when it’s empty, or press Reload, next to Pow!, to reload early (it’s quicker when the tube isn’t empty).</p>
       <p><b>Last call.</b> In the final 10 seconds the machinery speeds up.</p>

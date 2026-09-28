@@ -1,7 +1,7 @@
 /* =====================================================================
    The booth, seen first person: a camera zoomed into the gallery follows
    your sights; your rifle, the counter and your rivals' shoulders are in
-   the foreground. Steer with the stick, press Pow! to fire. Also the effects, the
+   the foreground. Drag to aim like a mouse, press Pow! to fire. Also the effects, the
    scoreboard and the shell belt.
    startRound() runs a round; the rules themselves are in gallery.js.
    ===================================================================== */
@@ -14,10 +14,9 @@ const ZOOM = 1.55, EYE = .46, COUNTER = .8; // counter: the foreground counter s
 const CAM = { x: 200, y: 300 };
 // your sights, in world units, and the drag that moves them
 const SIGHT = { x: 200, y: 300, wx: 0, wy: 0, drag: null, keys: {} };
-// The aiming stick, like Ink Sky's: it appears where your thumb lands. Tilt it and the sights glide that way;
-// the further you tilt, the faster they go (slow near the middle for fine aim, fast at the edge to swing across).
-// On top of that, every pixel your thumb moves nudges the sights straight away (NUDGE), so they answer the moment you move.
-const STICK = { R: 46, FOLLOW: 64, DEAD: .05, CURVE: 1.25, SPEED: 560, NUDGE: .7 }; // px to full tilt, px before the base follows your thumb, world units a second at full tilt, screen px of sight per px of thumb
+// Aiming is like a mouse: screen px of sight per px of thumb when moving slowly, how much faster moves add, up to a limit.
+// SLOW: below this thumb speed (px per ms) it stays 1 to 1. Otis wants zero delay: never add easing or glide to the sights.
+const THUMB = { BASE: 1, SLOW: .25, ACCEL: 1.6, MAX: 4 };
 let FX = [], HOLES = [], BLOTS = [], SHAKE = 0;
 const AIM = [{ x: 110, y: 300, kick: 0 }, { x: 200, y: 300, kick: 0 }, { x: 290, y: 300, kick: 0 }];
 
@@ -509,7 +508,7 @@ function hud(force) {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------- input ----------
-// Touch: put a thumb down anywhere on the screen (not on a button) and a stick appears there; tilt it to steer your sights. Nothing fires until you press Pow!.
+// Touch: drag a thumb anywhere on the screen (not on a button) to move your sights, like a mouse. Nothing fires until you press Pow!.
 // Two thumbs work at once: one dragging, one on the button. Mouse: move to aim, click to fire. Keyboard: arrows, space or enter.
 const clampSight = () => { SIGHT.x = Math.max(4, Math.min(E.W - 4, SIGHT.x)); SIGHT.y = Math.max(30, Math.min(E.GH - 4, SIGHT.y)); };
 function pull() {
@@ -527,40 +526,28 @@ PLAYEL.addEventListener('pointerdown', e => {
   if (e.pointerType === 'mouse') { if (e.button === 0 && e.target === cv) pull(); return; }
   if (SIGHT.drag) return;
   try { PLAYEL.setPointerCapture(e.pointerId); } catch (_) {}
-  SIGHT.drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, jx: 0, jy: 0 };
-  stickShow();
+  SIGHT.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp };
 });
-PLAYEL.addEventListener('pointermove', e => {
+// The sights move the instant your thumb does, like a mouse, and stop the instant it stops.
+// Pointer acceleration: slow moves are 1 to 1 for fine aim, a quick flick carries the sights up to THUMB.MAX times further.
+function thumbMove(x, y, t) {
+  const d = SIGHT.drag, dx = x - d.x, dy = y - d.y, ms = Math.max(1, t - d.t);
+  const speed = Math.hypot(dx, dy) / ms; // px per millisecond
+  const gain = Math.min(THUMB.MAX, THUMB.BASE + THUMB.ACCEL * Math.max(0, speed - THUMB.SLOW));
+  SIGHT.x += dx * gain / V.k; SIGHT.y += dy * gain / V.k; clampSight();
+  d.x = x; d.y = y; d.t = t;
+}
+// pointerrawupdate arrives as soon as the finger moves, without waiting for the next frame, where the browser has it
+PLAYEL.addEventListener('onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove', e => {
   if (!R || paused) return;
   if (e.pointerType === 'mouse') { if (e.target === cv) { SIGHT.x += (e.movementX || 0) / V.k; SIGHT.y += (e.movementY || 0) / V.k; clampSight(); } return; }
   const d = SIGHT.drag; if (!d || d.id !== e.pointerId) return;
-  // the nudge: the sights move with your thumb straight away
-  SIGHT.x += (e.clientX - d.x) * STICK.NUDGE / V.k; SIGHT.y += (e.clientY - d.y) * STICK.NUDGE / V.k; clampSight();
-  d.x = e.clientX; d.y = e.clientY;
-  let dx = d.x - d.sx, dy = d.y - d.sy, m = Math.hypot(dx, dy);
-  if (m > STICK.FOLLOW) { d.sx = d.x - dx / m * STICK.FOLLOW; d.sy = d.y - dy / m * STICK.FOLLOW; dx = d.x - d.sx; dy = d.y - d.sy; m = STICK.FOLLOW; } // the stick follows your thumb
-  const k = Math.min(1, m / STICK.R) / Math.max(m, 1); d.jx = dx * k; d.jy = dy * k;
-  stickShow();
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+  (evs.length ? evs : [e]).forEach(c => thumbMove(c.clientX, c.clientY, c.timeStamp));
 });
-const letGo = e => { const d = SIGHT.drag; if (d && d.id === e.pointerId) { SIGHT.drag = null; stickShow(); } };
+const letGo = e => { const d = SIGHT.drag; if (d && d.id === e.pointerId) SIGHT.drag = null; };
 PLAYEL.addEventListener('pointerup', letGo);
 PLAYEL.addEventListener('pointercancel', letGo);
-// the stick you see: a dashed ring where your thumb landed and a knob under your thumb
-function stickShow() {
-  const el = $('stick'), d = SIGHT.drag;
-  el.classList.toggle('on', !!d);
-  if (!d) return;
-  const r = PLAYEL.getBoundingClientRect(), m = Math.hypot(d.x - d.sx, d.y - d.sy), k = m > STICK.R ? STICK.R / m : 1;
-  el.style.transform = `translate(${d.sx - r.left}px,${d.sy - r.top}px)`;
-  $('knob').style.transform = `translate(${(d.x - d.sx) * k}px,${(d.y - d.sy) * k}px)`;
-}
-// each frame: the tilt of the stick moves the sights
-function stickAim(dt) {
-  const d = SIGHT.drag; if (!d) return;
-  const m = Math.hypot(d.jx, d.jy); if (m <= STICK.DEAD) return;
-  const v = Math.pow((m - STICK.DEAD) / (1 - STICK.DEAD), STICK.CURVE) * STICK.SPEED * dt / m;
-  SIGHT.x += d.jx * v; SIGHT.y += d.jy * v; clampSight();
-}
 // the fire button fires the moment it's pressed, not on release, so it feels like a trigger
 const FIRE = $('fire');
 FIRE.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); FIRE.classList.add('down'); pull(); });
@@ -592,7 +579,7 @@ function startRound(o) {
   R = E.newRound({ booth: o.booth, seed: o.seed, seats: o.seats });
   FX = []; HOLES = []; BLOTS = []; SHAKE = 0; endAt = 0; paused = false;
   AIM.forEach((a, i) => { a.x = [110, 200, 290][i]; a.y = 300; a.kick = 0; });
-  SIGHT.x = 200; SIGHT.y = 280; SIGHT.drag = null; stickShow(); SIGHT.keys = {}; CAM.x = 200; CAM.y = 280;
+  SIGHT.x = 200; SIGHT.y = 280; SIGHT.drag = null; SIGHT.keys = {}; CAM.x = 200; CAM.y = 280;
   $('play').classList.remove('late');
   show('play');
   requestAnimationFrame(() => { resize(); buildHud(); draw(); });
@@ -603,7 +590,7 @@ function startRound(o) {
     paused = true;
     sheet(`<h2>Step right up</h2>
       <div class="how">
-        <p><b>Put a thumb down anywhere to aim.</b> A stick appears under it. Tilt it a little to nudge your sights, all the way to swing them fast.</p>
+        <p><b>Drag a thumb anywhere to aim.</b> Your sights follow it like a mouse. Move slowly for fine aim, flick to swing across the booth.</p>
         <p><b>Press Pow! to fire.</b> Reload is right beside it, or it reloads by itself when you run out.</p>
         <p>Knock down more than the rivals either side of you before the clock runs out.</p>
         <p>They shoot the same targets as you. If they get there first, it’s theirs.</p>
@@ -632,9 +619,7 @@ function loop(now) {
     // arrow keys move the sights; the sights wobble a little as you hold the rifle up; the camera follows
     const k = SIGHT.keys, sp = 260 * dt;
     SIGHT.x += ((k.ArrowRight ? 1 : 0) - (k.ArrowLeft ? 1 : 0)) * sp; SIGHT.y += ((k.ArrowDown ? 1 : 0) - (k.ArrowUp ? 1 : 0)) * sp; clampSight();
-    stickAim(dt);
-    const c = PLAY.clock, wob = RM ? 0 : 1;
-    SIGHT.wx = (Math.sin(c * 1.1) + Math.sin(c * 2.7 + 1) * .5) * wob; SIGHT.wy = (Math.cos(c * .9) * .8 + Math.sin(c * 2.1) * .45) * wob;
+    SIGHT.wx = SIGHT.wy = 0; // no wobble: the sights sit exactly where you put them
     camera(1); // the view stays locked on your sights
     SHAKE = SHAKE > .3 ? SHAKE * Math.pow(.001, dt) : 0;
     if (R.freeze > 0) SHAKE = Math.max(SHAKE, .8);
