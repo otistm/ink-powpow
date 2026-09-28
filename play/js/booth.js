@@ -1,34 +1,49 @@
 /* =====================================================================
-   The booth: drawing the gallery, the rivals and rifles at the counter,
-   tapping to shoot, the effects, the scoreboard and the shell belt.
+   The booth, seen first person: a camera zoomed into the gallery follows
+   your sights; your rifle, the counter and your rivals' shoulders are in
+   the foreground. Drag to aim, let go to fire. Also the effects, the
+   scoreboard and the shell belt.
    startRound() runs a round; the rules themselves are in gallery.js.
    ===================================================================== */
 "use strict";
 let R = null, PLAY = null, paused = false, raf = 0, lastT = 0, endAt = 0;
 const cv = $('cv'), ctx = cv.getContext('2d');
-const V = { D: 1, cw: 0, ch: 0, sc: 1, ox: 0, oy: 0, pat: null, patFor: '' };
+const V = { D: 1, cw: 0, ch: 0, sc: 1, k: 1, ox: 0, oy: 0, pat: null, patFor: '' };
+// the first-person camera: how far it's zoomed in, where it looks (world units), and where on screen that point sits
+const ZOOM = 1.55, EYE = .4, COUNTER = .8; // counter: the foreground counter starts this far down the screen
+const CAM = { x: 200, y: 300 };
+// your sights, in world units, and the drag that moves them
+const SIGHT = { x: 200, y: 300, wx: 0, wy: 0, drag: null, keys: {} };
+const DRAG = 1.2; // how far the sights move for each pixel your thumb moves
 let FX = [], HOLES = [], BLOTS = [], SHAKE = 0;
 const AIM = [{ x: 110, y: 300, kick: 0 }, { x: 200, y: 300, kick: 0 }, { x: 290, y: 300, kick: 0 }];
-// where each seat sits: the rivals' heads, and the rifle pivots
-const SEAT = [{ hx: 42, hy: 632, px: 60, py: 640, len: 96, s: 1 }, { px: 200, py: 716, len: 150, s: 1.45 }, { hx: 358, hy: 632, px: 340, py: 640, len: 96, s: 1 }];
 
 // ---------- layout ----------
 function resize() {
   const r = $('stage').getBoundingClientRect();
   V.D = dpr(); V.cw = Math.max(1, r.width); V.ch = Math.max(1, r.height);
   cv.width = Math.round(V.cw * V.D); cv.height = Math.round(V.ch * V.D);
-  V.sc = Math.min(V.cw / E.W, V.ch / E.WH);
-  V.ox = (V.cw - E.W * V.sc) / 2; V.oy = (V.ch - E.WH * V.sc) / 2;
-  resetSprites(V.sc * V.D); V.patFor = '';
+  V.sc = Math.min(V.cw / E.W, V.ch * COUNTER / E.GH);
+  V.k = V.sc * ZOOM;
+  resetSprites(V.k * V.D); V.patFor = '';
+  camera(1);
+}
+// The camera eases toward the sights, but never so far that you'd see past the booth's poles, awning or counter.
+function camera(f) {
+  const hw = V.cw / 2 / V.k, up = V.ch * EYE / V.k, down = V.ch * (COUNTER - EYE) / V.k;
+  const clampTo = (v, lo, hi) => lo > hi ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, v));
+  const tx = clampTo(SIGHT.x, hw - 14, E.W + 14 - hw), ty = clampTo(SIGHT.y, up - 4, E.GH + 14 - down);
+  CAM.x += (tx - CAM.x) * f; CAM.y += (ty - CAM.y) * f;
+  V.ox = V.cw / 2 - CAM.x * V.k; V.oy = V.ch * EYE - CAM.y * V.k;
 }
 addEventListener('resize', () => { if (R) { resize(); draw(); } });
-const world = () => ctx.setTransform(V.D * V.sc, 0, 0, V.D * V.sc, V.D * (V.ox + (SHAKE ? (Math.random() - .5) * SHAKE : 0)), V.D * (V.oy + (SHAKE ? (Math.random() - .5) * SHAKE : 0)));
-const screenXY = (x, y) => [V.ox + x * V.sc, V.oy + y * V.sc];
-const viewLeft = () => -V.ox / V.sc, viewRight = () => (V.cw - V.ox) / V.sc, viewTop = () => -V.oy / V.sc, viewBottom = () => (V.ch - V.oy) / V.sc;
+const world = () => ctx.setTransform(V.D * V.k, 0, 0, V.D * V.k, V.D * (V.ox + (SHAKE ? (Math.random() - .5) * SHAKE : 0)), V.D * (V.oy + (SHAKE ? (Math.random() - .5) * SHAKE : 0)));
+const screenXY = (x, y) => [V.ox + x * V.k, V.oy + y * V.k];
+const viewLeft = () => -V.ox / V.k, viewRight = () => (V.cw - V.ox) / V.k, viewTop = () => -V.oy / V.k, viewBottom = () => (V.ch - V.oy) / V.k;
 
 // ---------- the back wall ----------
 function wallPattern(kind) {
-  const k = V.sc * V.D, tw = { waves: 48, bricks: 48, planks: 36, night: 120, harlequin: 40 }[kind], th = { waves: 26, bricks: 26, planks: 90, night: 120, harlequin: 60 }[kind];
+  const k = V.k * V.D, tw = { waves: 48, bricks: 48, planks: 36, night: 120, harlequin: 40 }[kind], th = { waves: 26, bricks: 26, planks: 90, night: 120, harlequin: 60 }[kind];
   const c = document.createElement('canvas'); c.width = Math.round(tw * k); c.height = Math.round(th * k);
   const x = c.getContext('2d'); x.scale(c.width / tw, c.height / th);
   x.fillStyle = kind === 'night' ? '#000' : '#fff'; x.fillRect(0, 0, tw, th);
@@ -43,7 +58,8 @@ function wallPattern(kind) {
 function drawWall() {
   const kind = R.B.wall;
   if (V.patFor !== kind) { V.pat = wallPattern(kind); V.patFor = kind; }
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = V.pat; ctx.fillRect(0, 0, cv.width, cv.height);
+  // the wall pans with the camera
+  ctx.setTransform(1, 0, 0, 1, V.D * V.ox, V.D * V.oy); ctx.fillStyle = V.pat; ctx.fillRect(-V.D * V.ox, -V.D * V.oy, cv.width, cv.height);
 }
 function drawAwning() {
   const l = viewLeft() - 2, r = viewRight() + 2, t = viewTop() - 2, y = 34, w = 32;
@@ -69,20 +85,6 @@ function drawPoles() {
     ctx.beginPath(); ctx.rect(x - 6, 20, 12, E.GH - 10); ctx.lineWidth = 2.3; ctx.stroke();
   });
 }
-function drawCounter() {
-  const l = viewLeft() - 2, r = viewRight() + 2, b = viewBottom() + 2, y = E.GH;
-  ctx.fillStyle = '#000'; ctx.fillRect(l, y - 4, r - l, 8);
-  ctx.beginPath(); ctx.rect(l, y + 14, r - l, b - y - 14); ctx.fillStyle = '#fff'; ctx.fill();
-  ctx.save(); ctx.clip(); ctx.beginPath();
-  for (let x = Math.floor(l / 30) * 30; x < r; x += 30) { ctx.moveTo(x, y + 14); ctx.lineTo(x, b); }
-  ctx.lineWidth = 1.6; ctx.strokeStyle = '#000'; ctx.stroke();
-  ctx.globalAlpha = .5; ctx.beginPath(); for (let x = l - 200; x < r; x += 5) { ctx.moveTo(x, y + 14); ctx.lineTo(x + 120, b); } ctx.lineWidth = .7; ctx.stroke();
-  ctx.restore();
-  ctx.beginPath(); ctx.rect(l, y + 14, r - l, b - y); ctx.lineWidth = 2.3; ctx.strokeStyle = '#000'; ctx.stroke();
-  ctx.beginPath(); ctx.rect(l, y, r - l, 14); ctx.fillStyle = '#fff'; ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(l, y + 23); ctx.lineTo(r, y + 23); ctx.setLineDash([6, 5]); ctx.lineWidth = 1.4; ctx.stroke(); ctx.setLineDash([]);
-}
-
 // ---------- the machinery ----------
 function drawRigBack(r) {
   ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -167,7 +169,9 @@ function drawTarget(sl) {
   ctx.restore();
 }
 
-// ---------- the rivals and rifles ----------
+// ---------- the foreground: counter, rivals, your rifle ----------
+// Everything here is drawn in screen pixels. u is one "foreground unit", so it all scales with the phone.
+const fgU = () => Math.min(V.cw, V.ch * .62) / 390;
 function drawRifle(x, y, ang, s, loaded, kick) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.scale(s, s); ctx.translate(-kick, 0);
   ctx.lineJoin = 'round'; ctx.lineWidth = 2.3 / s; ctx.strokeStyle = '#000';
@@ -181,21 +185,82 @@ function drawRifle(x, y, ang, s, loaded, kick) {
   if (loaded) { ctx.beginPath(); ctx.moveTo(96, -3); ctx.lineTo(103, -4); ctx.lineTo(103, 4); ctx.lineTo(96, 3); ctx.closePath(); ctx.fillStyle = '#fff'; ctx.fill(); ctx.stroke(); }
   ctx.restore();
 }
-function muzzle(i) {
-  const q = SEAT[i], a = AIM[i], ang = Math.atan2(a.y - q.py, a.x - q.px), L = 100 * q.s;
+// where your sights are right now, with the little wobble of holding a rifle up
+function sightNow() { return [SIGHT.x + SIGHT.wx, SIGHT.y + SIGHT.wy]; }
+// the rivals sit just off the edges of your view: the back of a head and shoulder, and a rifle reaching in
+function rivalPos(i) {
+  const u = fgU(), side = i === 0 ? -1 : 1;
+  return { hx: V.cw / 2 + side * (V.cw / 2 + 4 * u), hy: V.ch * .9, px: V.cw / 2 + side * (V.cw / 2 - 30 * u), py: V.ch * .86, s: 1.75 * u };
+}
+function muzzleScreen(i) {
+  if (i === 1) return yourRifle().muzzle;
+  const q = rivalPos(i), [ax, ay] = screenXY(AIM[i].x, AIM[i].y), ang = Math.atan2(ay - q.py, ax - q.px), L = 100 * q.s;
   return [q.px + Math.cos(ang) * L, q.py + Math.sin(ang) * L];
 }
-function drawSeats() {
+// Your rifle, seen down the barrel: it reaches from the bottom of the screen to just under your sights.
+function yourRifle() {
+  const u = fgU(), [wx, wy] = sightNow(), [sx, sy] = screenXY(wx, wy), kick = AIM[1].kick * u * 1.6;
+  const bx = V.cw * .66 + (sx - V.cw / 2) * .35, by = V.ch + 30 * u + kick; // held at your right shoulder
+  const mx = sx, my = sy + 16 * u + kick * .6;
+  return { u, sx, sy, bx, by, mx, my, kick, muzzle: [mx, my - 6 * u] };
+}
+function drawCounterFg() {
+  const u = fgU(), y = V.ch * COUNTER, shift = -(CAM.x - E.W / 2) * V.k * .35, w = 38 * u;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, y - 6 * u, V.cw, 10 * u);
+  ctx.beginPath(); ctx.rect(-4, y + 18 * u, V.cw + 8, V.ch); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.save(); ctx.clip(); ctx.beginPath();
+  for (let x = ((shift % w) + w) % w - w; x < V.cw + w; x += w) { ctx.moveTo(x, y + 18 * u); ctx.lineTo(x + (x - V.cw / 2) * .25, V.ch); }
+  ctx.lineWidth = 2; ctx.strokeStyle = '#000'; ctx.stroke();
+  ctx.globalAlpha = .45; ctx.beginPath(); for (let x = -V.ch; x < V.cw; x += 6 * u) { ctx.moveTo(x, y + 18 * u); ctx.lineTo(x + 140 * u, V.ch); } ctx.lineWidth = .8; ctx.stroke();
+  ctx.restore();
+  ctx.beginPath(); ctx.rect(-4, y, V.cw + 8, 18 * u); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#000'; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, y + 29 * u); ctx.lineTo(V.cw, y + 29 * u); ctx.setLineDash([8 * u, 6 * u]); ctx.lineDashOffset = -shift; ctx.lineWidth = 1.6; ctx.stroke(); ctx.setLineDash([]); ctx.lineDashOffset = 0;
+}
+function drawRivalsFg() {
   [0, 2].forEach(i => {
-    const S = R.seats[i], q = SEAT[i], a = AIM[i];
-    ctx.save(); ctx.translate(q.hx, q.hy); ctx.scale(1.05, 1.05); LW = 2.3; drawHead(ctx, S.hat || 'none', false);
-    if (S.sootT > 0) { ctx.globalAlpha = Math.min(1, S.sootT); for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.arc(Math.cos(k * 1.3 + PLAY.clock * 2) * 14, -24 - k * 5 - (PLAY.clock * 20 + k * 9) % 20, 4 + k, 0, TAU); ctx.fillStyle = '#000'; ctx.fill(); } }
+    const S = R.seats[i], q = rivalPos(i), [ax, ay] = screenXY(AIM[i].x, AIM[i].y);
+    ctx.save(); ctx.translate(q.hx, q.hy); ctx.scale(q.s * 1.15, q.s * 1.15); LW = 2.6 / (q.s * 1.15); drawHead(ctx, S.hat || 'none', false);
+    if (S.sootT > 0) { ctx.globalAlpha = Math.min(1, S.sootT); for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.arc(Math.cos(k * 1.3 + PLAY.clock * 2) * 14 - (i ? 10 : -10), -24 - k * 5 - (PLAY.clock * 20 + k * 9) % 20, 4 + k, 0, TAU); ctx.fillStyle = '#000'; ctx.fill(); } }
     ctx.restore();
-    drawRifle(q.px, q.py, Math.atan2(a.y - q.py, a.x - q.px), q.s, S.ammo > 0 && S.reloadT <= 0, a.kick);
-    if (S.reloadT > 0) { ctx.beginPath(); ctx.arc(q.hx, q.hy - 38, 7, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - S.reloadT / (S.reloadFull || 1))); ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.stroke(); }
+    drawRifle(q.px, q.py, Math.atan2(ay - q.py, ax - q.px), q.s, S.ammo > 0 && S.reloadT <= 0, AIM[i].kick);
+    if (S.reloadT > 0) { const cx = V.cw / 2 + (i ? 1 : -1) * (V.cw / 2 - 26 * fgU()), cy = q.hy - 70 * fgU(); ctx.beginPath(); ctx.arc(cx, cy, 9 * fgU(), -Math.PI / 2, -Math.PI / 2 + TAU * (1 - S.reloadT / (S.reloadFull || 1))); ctx.lineWidth = 3.5; ctx.strokeStyle = '#000'; ctx.stroke(); }
   });
-  const S = R.seats[1], q = SEAT[1], a = AIM[1];
-  drawRifle(q.px, q.py, Math.atan2(a.y - q.py, a.x - q.px), q.s, S.ammo > 0 && S.reloadT <= 0, a.kick);
+}
+function drawYourRifle() {
+  const S = R.seats[1], g = yourRifle(), u = g.u;
+  const along = t => [g.bx + (g.mx - g.bx) * t, g.by + (g.my - g.by) * t], half = t => (40 - 34 * t) * u;
+  const edge = (t, side) => { const [x, y] = along(t); return [x + side * half(t), y]; };
+  const body = (t0, t1) => { ctx.beginPath(); let p = edge(t0, -1); ctx.moveTo(p[0], p[1]); p = edge(t1, -1); ctx.lineTo(p[0], p[1]); p = edge(t1, 1); ctx.lineTo(p[0], p[1]); p = edge(t0, 1); ctx.lineTo(p[0], p[1]); ctx.closePath(); };
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  // shadow, then the barrel, the hatched stock near you, bands, the rear sight and the front post
+  ctx.save(); ctx.translate(5 * u, 6 * u); body(0, 1); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
+  body(0, 1); ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.save(); body(0, .32); ctx.clip(); ctx.beginPath(); for (let x = -V.ch; x < V.cw + V.ch; x += 5 * u) { ctx.moveTo(x, V.ch); ctx.lineTo(x + V.ch * .6, 0); } ctx.lineWidth = 1; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.restore();
+  body(0, 1); ctx.lineWidth = 2.6; ctx.strokeStyle = '#000'; ctx.stroke();
+  const [cx0, cy0] = along(0), [cx1, cy1] = along(1); ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.lineTo(cx1, cy1); ctx.lineWidth = 1.2; ctx.stroke();
+  [.62, .8, .95].forEach(t => { const a = edge(t, -1), b = edge(t, 1); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineWidth = 4 * u; ctx.stroke(); });
+  // rear sight: a plate with a V notch, lined up on your sights
+  { const t = .42, [x, y] = along(t), w = half(t) * 1.25, h = 12 * u;
+    ctx.beginPath(); ctx.moveTo(x - w, y); ctx.lineTo(x - w, y - h); ctx.lineTo(x - 7 * u, y - h); ctx.lineTo(x, y - 3 * u); ctx.lineTo(x + 7 * u, y - h); ctx.lineTo(x + w, y - h); ctx.lineTo(x + w, y); ctx.closePath();
+    ctx.fillStyle = '#000'; ctx.fill(); }
+  // front post
+  ctx.beginPath(); ctx.rect(g.mx - 2.5 * u, g.sy + 2 * u, 5 * u, g.my - g.sy - 2 * u); ctx.fillStyle = '#000'; ctx.fill();
+  if (S.ammo > 0 && S.reloadT <= 0) { ctx.beginPath(); ctx.rect(g.mx - 6 * u, g.my - 2 * u, 12 * u, 5 * u); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 1.8; ctx.stroke(); }
+  // a thin ring on the spot you'll hit, so a thumb can find it
+  ctx.beginPath(); ctx.arc(g.sx, g.sy, 11 * u, 0, TAU); ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke(); ctx.setLineDash([3 * u, 3 * u]); ctx.lineWidth = 1.6; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(g.sx, g.sy, 1.8 * u, 0, TAU); ctx.fillStyle = '#000'; ctx.fill();
+  if (S.reloadT > 0) { ctx.beginPath(); ctx.arc(g.sx, g.sy, 16 * u, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - S.reloadT / (S.reloadFull || 1))); ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.stroke(); }
+}
+// cork lines are drawn in screen space, from each rifle's muzzle to where the cork landed
+function drawShotLines() {
+  for (const f of FX) {
+    if (f.k !== 'line') continue;
+    const u = f.t / f.life, [x0, y0] = muzzleScreen(f.seat), [x1, y1] = screenXY(f.x1, f.y1);
+    ctx.save(); ctx.globalAlpha = 1 - u; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+    ctx.setLineDash(f.seat === 1 ? [] : [5, 6]); ctx.lineWidth = f.seat === 1 ? 2.6 : 2; ctx.strokeStyle = '#000'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x0, y0, (6 + u * 10) * fgU(), 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); ctx.setLineDash([]); ctx.lineWidth = 1.8; ctx.stroke();
+    ctx.restore();
+  }
 }
 
 // ---------- effects ----------
@@ -210,7 +275,7 @@ function drawFx(dt) {
   for (const f of FX) {
     const u = f.t / f.life;
     ctx.save();
-    if (f.k === 'line') { ctx.globalAlpha = 1 - u; ctx.beginPath(); ctx.moveTo(f.x0, f.y0); ctx.lineTo(f.x1, f.y1); ctx.setLineDash(f.seat === 1 ? [] : [4, 5]); ctx.lineWidth = f.seat === 1 ? 2.2 : 1.6; ctx.strokeStyle = '#000'; ctx.stroke(); }
+    if (f.k === 'line') { /* drawn in the foreground, see drawShotLines */ }
     else if (f.k === 'puff') { const r = f.r * (.5 + u); ctx.globalAlpha = 1 - u; ctx.beginPath(); ctx.arc(f.x, f.y - u * 10, r, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 1.8; ctx.strokeStyle = '#000'; ctx.stroke(); }
     else if (f.k === 'ring') { ctx.globalAlpha = 1 - u; ctx.beginPath(); ctx.arc(f.x, f.y, f.r * (.3 + u * .9), 0, TAU); ctx.lineWidth = 6 * (1 - u) + 1; ctx.strokeStyle = '#000'; ctx.setLineDash(f.dash ? [5, 6] : []); ctx.stroke();
       if (!f.dash) for (let i = 0; i < 12; i++) { const a = i / 12 * TAU, r0 = f.r * (.4 + u), r1 = r0 + 12 * (1 - u); ctx.beginPath(); ctx.moveTo(f.x + Math.cos(a) * r0, f.y + Math.sin(a) * r0); ctx.lineTo(f.x + Math.cos(a) * r1, f.y + Math.sin(a) * r1); ctx.lineWidth = 2.4; ctx.stroke(); } }
@@ -253,9 +318,11 @@ function drawHoles(dt) {
 function drawBlots() {
   const S = R.seats[1]; if (S.sootT <= 0) { BLOTS.length = 0; return; }
   ctx.globalAlpha = Math.min(1, S.sootT / .8);
+  const u = fgU();
   for (const b of BLOTS) {
-    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill();
-    for (let i = 0; i < 9; i++) { const a = b.a + i * .7, d = b.r * (.8 + (i % 3) * .25); ctx.beginPath(); ctx.arc(b.x + Math.cos(a) * d, b.y + Math.sin(a) * d, b.r * (.18 + (i % 2) * .12), 0, TAU); ctx.fill(); }
+    const x = b.x * V.cw, y = b.y * V.ch * COUNTER, r = b.r * u;
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    for (let i = 0; i < 9; i++) { const a = b.a + i * .7, d = r * (.8 + (i % 3) * .25); ctx.beginPath(); ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, r * (.18 + (i % 2) * .12), 0, TAU); ctx.fill(); }
   }
   ctx.globalAlpha = 1;
 }
@@ -267,8 +334,11 @@ function draw(dt = 0) {
   world();
   drawHoles(dt);
   for (const r of R.rigs) { drawRigBack(r); for (const sl of r.slots) drawTarget(sl); drawRigFront(r); }
-  drawPoles(); drawAwning(); drawCounter(); drawSeats();
-  drawFx(dt); drawBlots();
+  drawPoles(); drawAwning();
+  drawFx(dt);
+  // the foreground, in screen pixels
+  ctx.setTransform(V.D, 0, 0, V.D, 0, 0);
+  drawCounterFg(); drawRivalsFg(); drawShotLines(); drawYourRifle(); drawBlots();
   drawFloats();
 }
 
@@ -280,9 +350,8 @@ function onEvents() {
     switch (e.k) {
       case 'shot': {
         AIM[seat].x = e.x; AIM[seat].y = e.y; AIM[seat].kick = 9;
-        const [mx, my] = muzzle(seat);
-        fx({ k: 'line', x0: mx, y0: my, x1: e.x, y1: e.y, seat, life: .14 });
-        fx({ k: 'puff', x: mx, y: my, r: 7, life: .35 });
+        fx({ k: 'line', x1: e.x, y1: e.y, seat, life: .16 });
+        fx({ k: 'puff', x: e.x, y: e.y, r: 5, life: .25 });
         sfx('pop', seat);
         break; }
       case 'hit': {
@@ -328,7 +397,7 @@ function onEvents() {
 }
 function sootMe() {
   BLOTS = [];
-  for (let i = 0; i < 4; i++) BLOTS.push({ x: 60 + Math.random() * 280, y: 90 + Math.random() * 380, r: 16 + Math.random() * 16, a: Math.random() * 6 });
+  for (let i = 0; i < 4; i++) BLOTS.push({ x: .12 + Math.random() * .76, y: .1 + Math.random() * .8, r: 22 + Math.random() * 20, a: Math.random() * 6 });
 }
 
 // ---------- the scoreboard, clock, corks and shells ----------
@@ -381,21 +450,35 @@ function hud(force) {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------- input ----------
-cv.addEventListener('pointerdown', e => {
-  audioInit();
+// Touch: put a thumb down anywhere, drag to move your sights, let go to fire. A quick tap fires where they are.
+// Mouse: move to aim, click to fire. Keyboard: arrows to aim, space or enter to fire.
+const clampSight = () => { SIGHT.x = Math.max(4, Math.min(E.W - 4, SIGHT.x)); SIGHT.y = Math.max(30, Math.min(E.GH - 4, SIGHT.y)); };
+function pull() {
   if (!R || paused || R.phase !== 'go') return;
-  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left - V.ox) / V.sc, y = (e.clientY - r.top - V.oy) / V.sc;
-  if (y > E.GH + 6) return;
   const S = R.seats[1];
   if (S.reloadT > 0) { sfx('empty'); nope($('tube')); return; }
-  if (!E.shoot(R, 1, x, y) && S.ammo > 0) return;
+  const [x, y] = sightNow();
+  E.shoot(R, 1, x, y);
   hideTip();
+}
+cv.addEventListener('pointerdown', e => {
+  audioInit();
+  if (!R || paused) return;
+  if (e.pointerType === 'mouse') { if (e.button === 0) pull(); return; }
+  if (SIGHT.drag) return;
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  SIGHT.drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
 });
 cv.addEventListener('pointermove', e => {
-  if (!R || e.pointerType !== 'mouse') return;
-  const r = cv.getBoundingClientRect();
-  AIM[1].x = (e.clientX - r.left - V.ox) / V.sc; AIM[1].y = Math.min(E.GH, (e.clientY - r.top - V.oy) / V.sc);
+  if (!R || paused) return;
+  if (e.pointerType === 'mouse') { SIGHT.x += (e.movementX || 0) / V.k; SIGHT.y += (e.movementY || 0) / V.k; clampSight(); return; }
+  const d = SIGHT.drag; if (!d || d.id !== e.pointerId) return;
+  SIGHT.x += (e.clientX - d.x) * DRAG / V.k; SIGHT.y += (e.clientY - d.y) * DRAG / V.k; d.x = e.clientX; d.y = e.clientY; clampSight();
 });
+const letGo = fire => e => { const d = SIGHT.drag; if (!d || d.id !== e.pointerId) return; SIGHT.drag = null; if (fire) pull(); };
+cv.addEventListener('pointerup', letGo(true));
+cv.addEventListener('pointercancel', letGo(false));
+addEventListener('keyup', e => { SIGHT.keys[e.key] = false; });
 $('tube').onclick = () => { if (R && !paused && E.reload(R, 1)) squash($('tube')); };
 $('shells').onclick = e => {
   const b = e.target.closest('.shell[data-s]'); if (!b || !R || paused) return;
@@ -405,7 +488,9 @@ addEventListener('keydown', e => {
   if (!R || !$('play').classList.contains('on')) return;
   if (e.key === 'Escape' || e.key === 'p') { paused ? resumeRound() : pauseRound(); return; }
   if (paused) return;
-  if (e.key === 'r' || e.key === ' ') { E.reload(R, 1); e.preventDefault(); }
+  if (e.key.startsWith('Arrow')) { SIGHT.keys[e.key] = true; e.preventDefault(); }
+  if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { pull(); e.preventDefault(); }
+  if (e.key === 'r') E.reload(R, 1);
   const n = parseInt(e.key, 10); if (n >= 1 && n <= 6 && R.seats[1].shells[n - 1]) { E.loadShell(R, 1, R.seats[1].shells[n - 1]); hud(true); }
 });
 $('pause').onclick = () => pauseRound();
@@ -419,6 +504,7 @@ function startRound(o) {
   R = E.newRound({ booth: o.booth, seed: o.seed, seats: o.seats });
   FX = []; HOLES = []; BLOTS = []; SHAKE = 0; endAt = 0; paused = false;
   AIM.forEach((a, i) => { a.x = [110, 200, 290][i]; a.y = 300; a.kick = 0; });
+  SIGHT.x = 200; SIGHT.y = 280; SIGHT.drag = null; SIGHT.keys = {}; CAM.x = 200; CAM.y = 280;
   $('play').classList.remove('late');
   show('play');
   requestAnimationFrame(() => { resize(); buildHud(); draw(); });
@@ -429,7 +515,8 @@ function startRound(o) {
     paused = true;
     sheet(`<h2>Step right up</h2>
       <div class="how">
-        <p><b>Tap a target to shoot it.</b> Knock down more than the rivals either side of you before the clock runs out.</p>
+        <p><b>Drag to aim, let go to fire.</b> Put your thumb down anywhere and slide it to move your sights. A quick tap fires where they already are.</p>
+        <p>Knock down more than the rivals either side of you before the clock runs out.</p>
         <p>They shoot the same targets as you. If they get there first, it’s theirs.</p>
         <p><b>Hit 3 in a row</b> and your points double. 6 in a row triples them. A miss starts you over.</p>
         <p><b>Black targets cost points.</b> Leave them be.</p>
@@ -454,6 +541,12 @@ function loop(now) {
     }
     onEvents();
     for (const a of AIM) a.kick *= Math.pow(.0005, dt);
+    // arrow keys move the sights; the sights wobble a little as you hold the rifle up; the camera follows
+    const k = SIGHT.keys, sp = 260 * dt;
+    SIGHT.x += ((k.ArrowRight ? 1 : 0) - (k.ArrowLeft ? 1 : 0)) * sp; SIGHT.y += ((k.ArrowDown ? 1 : 0) - (k.ArrowUp ? 1 : 0)) * sp; clampSight();
+    const c = PLAY.clock, wob = RM ? 0 : 1;
+    SIGHT.wx = (Math.sin(c * 1.1) * 2 + Math.sin(c * 2.7 + 1) * 1.1) * wob; SIGHT.wy = (Math.cos(c * .9) * 1.6 + Math.sin(c * 2.1) * .9) * wob;
+    camera(Math.min(1, dt * 5));
     SHAKE = SHAKE > .3 ? SHAKE * Math.pow(.001, dt) : 0;
     if (R.freeze > 0) SHAKE = Math.max(SHAKE, .8);
     hud();

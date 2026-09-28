@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+- Shooting is first person now. You look down your own rifle's iron sights, and the view swings round to follow where you aim.
+- Drag anywhere to move your sights, let go to fire. A quick tap fires where the sights already are. On a computer, move the mouse and click, or use the arrow keys and space.
+- The sights wobble a little, like holding a real rifle up. A dashed ring shows exactly where the cork will land.
+- Your rivals sit just off the edges of your view: the backs of their heads and their rifles reaching in, with dashed lines when they fire.
+- Soot bombs now land on your view itself, like ink on the lens.
+
 ## 0.1.0
 - First version. A fairground mechanical shooting gallery. You sit on the middle stool; the shooters either side of you aim at the same tin targets, and whoever hits one first gets the points.
 - Tap to shoot. 6 corks a load, reloading by itself or early with a tap. 3 hits in a row doubles your points, 6 triples them; a miss starts you over.
