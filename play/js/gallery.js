@@ -1,6 +1,6 @@
 /* =====================================================================
    The rules, with no drawing: every target, the special shells, the
-   rifle upgrades, the rivals and their brains, the five booths and the
+   slingshot upgrades, the rivals and their brains, the five booths and the
    machinery in them, and a round of shooting. Exposed as `E`.
    Nothing in here touches the page, so tools/check.js can run it in Node.
    ===================================================================== */
@@ -75,10 +75,10 @@ const SHELLS = {
 };
 const SHELL_IDS = Object.keys(SHELLS);
 
-// ---------- rifle upgrades (last the whole midway) ----------
+// ---------- slingshot upgrades (last the whole midway) ----------
 const UPS = {
-  tube:    { name: 'Long tube',       price: 16, text: 'Hold 8 corks instead of 6.' },
-  pump:    { name: 'Quick pump',      price: 14, text: 'Reload a third faster.' },
+  tube:    { name: 'Cork bag',        price: 16, text: 'Hold 8 corks instead of 6.' },
+  pump:    { name: 'Quick hands',     price: 14, text: 'Reload a third faster.' },
   steady:  { name: 'Steady streak',   price: 14, text: 'A miss only drops your streak one step, not all the way.' },
   pockets: { name: 'Deep pockets',    price: 12, text: 'Carry 6 shells instead of 4.' },
   lucky:   { name: 'Lucky horseshoe', price: 12, text: 'Mystery boxes give you 2 shells instead of 1.' },

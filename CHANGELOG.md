@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+- You shoot with a toy slingshot now instead of a rifle: a wooden Y with tape round the handle, black rubber bands and a leather pouch holding a cork.
+- Put a thumb down anywhere to draw it back, drag to aim, let go to fire. The gap between the prongs is your aim, and it still follows your thumb like a mouse with no delay. A tap fires where you're already aiming.
+- The pouch pulls back toward you while your thumb is down, then snaps forward through the prongs with a wobble when you let go. The shot happens the instant you let go.
+- The Pow! button is gone. Reload stays at the bottom, next to your shells.
+- Pass the rifle is now Pass the slingshot. The Long tube and Quick pump upgrades are now the Cork bag and Quick hands (they work the same).
+
 ## 0.5.0
 - Aiming works like a mouse now, with no delay at all. Drag a thumb anywhere: your sights move the instant it moves and stop the instant it stops. No more gliding.
 - Move slowly and the sights follow your thumb exactly, for fine aim. Flick quickly and they travel up to 4 times further, so a small thumb movement can swing across the whole booth.

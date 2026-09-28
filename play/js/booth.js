@@ -1,7 +1,7 @@
 /* =====================================================================
    The booth, seen first person: a camera zoomed into the gallery follows
    your sights; your rifle, the counter and your rivals' shoulders are in
-   the foreground. Drag to aim like a mouse, press Pow! to fire. Also the effects, the
+   the foreground. Your slingshot: drag to aim like a mouse, let go to fire. Also the effects, the
    scoreboard and the shell belt.
    startRound() runs a round; the rules themselves are in gallery.js.
    ===================================================================== */
@@ -191,109 +191,82 @@ function drawRifle(x, y, ang, s, loaded, kick) {
 function sightNow() { return [SIGHT.x + SIGHT.wx, SIGHT.y + SIGHT.wy]; }
 // Your rivals aren't drawn: their corks fly in from the side of the screen they sit on.
 function muzzleScreen(i) {
-  if (i === 1) return yourRifle().muzzle;
+  if (i === 1) return yourSling().muzzle;
   return [i === 0 ? -20 : V.cw + 20, V.ch * .62];
 }
-// Your rifle: a toy cork gun, built in 3D and seen from just behind and above it.
-// x is right, y is down, z is forward from your eye, in metres-ish. The barrel runs straight along z,
-// so it recedes toward your sights; both ring sights are centred on your eye line, so they frame the aim.
-const GUN = {
-  hb: .13, rb: .024,             // barrel: how far below your eye, and how thick
-  zb: .7, zm: 2.05,             // barrel: from where it leaves the stock to the muzzle
-  zs0: .3, zs1: .86,            // stock: near end (at your shoulder) and far end
-  ys0: .23, ys1: .165,          // stock: height of its top at each end (it slopes up away from you)
-  top: .02, side: .036, bev: .016, // stock: half-width of the flat top, half-width at the bevels, bevel depth
-  zr: .67, rr: .021,            // rear ring sight: where, and how big
-  zf: 1.9, rf: .018,
-  ax: .034, ay0: .098, ay1: .16, az0: .6, az1: .76, // the tin action block the barrel comes out of            // front ring sight
+// Your slingshot: a toy wooden Y, built in 3D and held out at arm's length. x is right, y is down, z is forward from your eye.
+// The gap between the prongs frames your aim. While your thumb is down the pouch is drawn back toward you;
+// let go and it snaps forward through the gap. The draw is only for show: the shot itself happens the instant you let go.
+const SLING = {
+  z: .55,                        // how far out you hold it
+  tx: .044, ty: -.004,           // the prong tips: half the gap, and height (just above your eye line)
+  cy: .075,                      // the crotch of the Y, below the gap
+  arm: .0085, grip: .013,        // thickness of the arms, and of the handle
+  rest: [0, .045, .56],          // where the pouch hangs when the bands are slack
+  pull: [0, .075, .23],          // where it sits drawn right back
+  draw: 0, vel: 0,               // how far it's drawn (0 slack, 1 drawn) and how fast that's changing: a spring, so it snaps and wobbles
 };
-function yourRifle() {
+function yourSling() {
   const u = fgU(), [wx, wy] = sightNow(), [sx, sy] = screenXY(wx, wy);
-  const f = Math.min(V.ch * 1.24, V.cw * 2.2), dz = -AIM[1].kick * .005; // the rifle jolts back toward you when it fires
+  const f = Math.min(V.ch * 1.24, V.cw * 2.2), dz = AIM[1].kick * .004; // it jolts away from you as the pouch snaps through
   const pr = (x, y, z) => [sx + f * x / (z + dz), sy + f * y / (z + dz)];
-  return { u, sx, sy, f, dz, pr, muzzle: pr(0, GUN.hb - GUN.rb * .4, GUN.zm + .04) };
+  return { u, sx, sy, f, dz, pr, muzzle: pr(0, .01, SLING.z) };
 }
-function drawYourRifle() {
-  const S = R.seats[1], g = yourRifle(), { pr, f, dz } = g, G = GUN, u = g.u;
-  const Z = z => z + dz;
-  const poly = pts => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); };
-  const ink = (fill = '#fff', w = 2.4) => { ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = w; ctx.strokeStyle = '#000'; ctx.stroke(); };
-  const hatch = (gap, lean, w = 1) => { ctx.save(); ctx.clip(); ctx.beginPath(); for (let x = -V.ch; x < V.cw + V.ch; x += gap) { ctx.moveTo(x, 0); ctx.lineTo(x + V.ch * lean, V.ch); } ctx.lineWidth = w; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.restore(); };
-  // a cylinder along z, seen from above: its outline between two cross-sections
-  const tube = (y, r, z0, z1) => { const [cx, y0] = pr(0, y, z0), r0 = f * r / Z(z0), [, y1] = pr(0, y, z1), r1 = f * r / Z(z1);
-    ctx.beginPath(); ctx.moveTo(cx - r0, y0); ctx.lineTo(cx - r1, y1); ctx.arc(cx, y1, r1, Math.PI, 0); ctx.lineTo(cx + r0, y0); ctx.arc(cx, y0, r0, 0, Math.PI); ctx.closePath(); };
-  const seam = (y, r, z, w = 2) => { const [cx, yy] = pr(0, y, z), rr = f * r / Z(z); ctx.beginPath(); ctx.arc(cx, yy, rr, Math.PI, 0); ctx.lineWidth = w; ctx.strokeStyle = '#000'; ctx.stroke(); };
-  // a circle lying flat on a surface (a screw head), projected
-  const flat = (x, y, z, r) => { ctx.beginPath(); for (let i = 0; i <= 16; i++) { const a = i / 16 * TAU, p = pr(x + Math.cos(a) * r, y, z + Math.sin(a) * r); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); } ctx.closePath(); };
-  // a ring sight standing on a post, facing you
-  const ringSight = (z, r, band, baseY, postW) => {
-    const [cx, cy] = pr(0, 0, z), R = f * r / Z(z), bw = Math.max(3, f * band / Z(z));
-    const [px0, py0] = pr(-postW, r, z), [px1, py1] = pr(postW, baseY, z);
-    ctx.beginPath(); ctx.rect(px0, py0, px1 - px0, py1 - py0); ink('#000', 1.4);
-    ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.lineWidth = bw + 4.4; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.lineWidth = bw; ctx.strokeStyle = '#fff'; ctx.stroke();
-    ctx.beginPath(); ctx.arc(cx, cy, R + bw / 2, Math.PI * .8, Math.PI * 1.35); ctx.lineWidth = 1.6; ctx.strokeStyle = '#000'; ctx.stroke(); // a little shading on the ring
-  };
-  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+// each frame: the pouch follows your thumb being down or up, on a springy band
+function slingStep(dt) {
+  const want = SIGHT.drag ? 1 : 0, S = SLING;
+  S.vel += ((want - S.draw) * (want ? 260 : 1400) - S.vel * (want ? 26 : 24)) * dt;
+  S.draw += S.vel * dt;
+}
+function drawSling() {
+  const S = R.seats[1], g = yourSling(), { pr, f, dz } = g, L = SLING, u = g.u, Z = z => z + dz;
   const loaded = S.ammo > 0 && S.reloadT <= 0;
-
-  // --- first the stock: a chunky bevelled block of wood under the barrel, sloping down toward your shoulder
-  const T = (x, t) => { const z = G.zs0 + (G.zs1 - G.zs0) * t, y = G.ys0 + (G.ys1 - G.ys0) * t; return [x, y, z]; };
-  const P = ([x, y, z], dy = 0) => pr(x, y + dy, z);
-  const nl = T(-G.top, 0), nr = T(G.top, 0), fl = T(-G.top, 1), fr = T(G.top, 1);
-  const nL = T(-G.side, 0), nR = T(G.side, 0), fL = T(-G.side, 1), fR = T(G.side, 1);
-  // shadow
-  ctx.save(); ctx.translate(6 * u, 7 * u); poly([P(nL, G.bev), P(fL, G.bev), P(fl), P(fr), P(fR, G.bev), P(nR, G.bev), P(nR, .6), P(nL, .6)]); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
-  // the end facing you (your shoulder end), mostly below the screen
-  poly([P(nl), P(nr), P(nR, G.bev), P(nR, .6), P(nL, .6), P(nL, G.bev)]); ink();
-  { const a = P(nL, G.bev + .03), b = P(nR, G.bev + .03), c = P(nR, .6), d = P(nL, .6); poly([a, b, c, d]); ink('#000'); } // a rubber butt pad
-  // the two bevels: the left one in shadow
-  poly([P(nl), P(fl), P(fL, G.bev), P(nL, G.bev)]); ink(); poly([P(nl), P(fl), P(fL, G.bev), P(nL, G.bev)]); hatch(3, .5, 1.1);
-  poly([P(nl), P(fl), P(fL, G.bev), P(nL, G.bev)]); ctx.lineWidth = 2.4; ctx.stroke();
-  poly([P(nr), P(fr), P(fR, G.bev), P(nR, G.bev)]); ink(); poly([P(nr), P(fr), P(fR, G.bev), P(nR, G.bev)]); hatch(7, .5, .9);
-  poly([P(nr), P(fr), P(fR, G.bev), P(nR, G.bev)]); ctx.lineWidth = 2.4; ctx.stroke();
-  // the flat top, with wood grain running away from you
-  poly([P(nl), P(nr), P(fr), P(fl)]); ink();
-  ctx.beginPath(); [-.016, -.005, .009, .019].forEach((x, i) => { for (let k = 0; k <= 10; k++) { const t = k / 10, p = P(T(x + Math.sin(t * 5 + i) * .002, t)); k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); } }); ctx.lineWidth = 1; ctx.strokeStyle = '#000'; ctx.stroke();
-  // the far end of the stock, where the barrel goes in: a tin collar
-  { const a = P(fl), b = P(fr), c = P(fR, G.bev), d = P(fL, G.bev); ctx.beginPath(); ctx.moveTo(d[0], d[1]); ctx.lineTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(c[0], c[1]); ctx.lineWidth = 3.4; ctx.strokeStyle = '#000'; ctx.stroke(); }
-  // screws
-  [[-.017, .32], [.017, .32], [0, .78]].forEach(([x, t]) => { const [px, py, pz] = T(x, t); flat(px, py, pz, .0065); ink('#fff', 1.6); const a = pr(px - .005, py, pz), b = pr(px + .005, py, pz); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineWidth = 1.4; ctx.stroke(); });
-  // --- then the barrel resting on it: the cork sticking out of the muzzle, the barrel, the front sight, the cork's string
-  if (loaded) { tube(G.hb, G.rb * 1.15, G.zm - .01, G.zm + .05); ink(); tube(G.hb, G.rb * 1.15, G.zm - .01, G.zm + .05); ctx.save(); ctx.clip(); for (let i = 0; i < 7; i++) { const p = pr((i % 3 - 1) * .012, G.hb - G.rb * (.3 + (i % 2) * .5), G.zm + .005 + i * .006); ctx.beginPath(); ctx.arc(p[0], p[1], 1.2, 0, TAU); ctx.fillStyle = '#000'; ctx.fill(); } ctx.restore(); }
-  // the barrel: candy stripes that get shorter as they go away from you
-  tube(G.hb, G.rb, G.zb, G.zm); ctx.save(); ctx.translate(4 * u, 5 * u); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
-  tube(G.hb, G.rb, G.zb, G.zm); ink();
-  const bands = 9;
-  for (let i = 0; i < bands; i++) {
-    const z0 = G.zb + (G.zm - G.zb) * i / bands, z1 = G.zb + (G.zm - G.zb) * (i + 1) / bands;
-    if (i % 2) { tube(G.hb, G.rb, z0, z1); hatch(3.2, -.6, 1.1); }
-    seam(G.hb, G.rb, z0, 1.6);
-  }
-  // a shine along the top of the barrel, and the shadow side
-  { const a = pr(-.006, G.hb - G.rb * .96, G.zb), b = pr(-.004, G.hb - G.rb * .96, G.zm); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineWidth = 3 * u; ctx.strokeStyle = '#fff'; ctx.stroke(); }
-  tube(G.hb, G.rb, G.zb, G.zm); ctx.lineWidth = 2.6; ctx.strokeStyle = '#000'; ctx.stroke();
-  // the muzzle rim
-  { const [cx, cy] = pr(0, G.hb, G.zm), R = f * G.rb * 1.2 / Z(G.zm); ctx.beginPath(); ctx.arc(cx, cy, R, Math.PI, 0); ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.stroke(); }
-  ringSight(G.zf, G.rf, .006, G.hb - G.rb, .003);
-  // the cork's string, sagging from the muzzle back to a screw on the stock
-  if (loaded) { ctx.beginPath(); for (let i = 0; i <= 12; i++) { const t = i / 12, z = G.zm - t * (G.zm - .62), sag = Math.sin(t * Math.PI) * .05, p = pr(.03 * t + .004, G.hb + G.rb * .6 + sag - t * .005, z); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); } ctx.lineWidth = 1.5; ctx.strokeStyle = '#000'; ctx.stroke(); }
-
-  // --- the tin action block the barrel comes out of, sitting on the stock
-  { const A = (x, y, z) => pr(x, y, z);
-    const tl0 = A(-G.ax, G.ay0, G.az0), tr0 = A(G.ax, G.ay0, G.az0), tl1 = A(-G.ax, G.ay0, G.az1), tr1 = A(G.ax, G.ay0, G.az1);
-    const bl0 = A(-G.ax, G.ay1, G.az0), br0 = A(G.ax, G.ay1, G.az0);
-    ctx.save(); ctx.translate(5 * u, 6 * u); poly([tl1, tr1, tr0, br0, bl0, tl0]); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
-    poly([tl0, tr0, br0, bl0]); ink(); poly([tl0, tr0, br0, bl0]); hatch(3.4, -.5, 1.1); poly([tl0, tr0, br0, bl0]); ctx.lineWidth = 2.6; ctx.stroke(); // the end facing you, in shadow
-    poly([tl0, tr0, tr1, tl1]); ink();                                                                                                        // the top
-    // a groove down the middle of the top, and rivets at the corners
-    { const a = A(0, G.ay0, G.az0), b = A(0, G.ay0, G.az1); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineWidth = 1.2; ctx.stroke(); }
-    [[-1, .63], [1, .63], [-1, .73], [1, .73]].forEach(([sd, z]) => { flat(sd * (G.ax - .009), G.ay0, z, .005); ink('#000', 1); });
-    // the cocking knob sticking out on the right
-    { const k = A(G.ax + .012, G.ay0 + .02, G.az0 + .05), r = f * .012 / Z(G.az0 + .05); ctx.beginPath(); ctx.arc(k[0], k[1], r, 0, TAU); ink(); ctx.beginPath(); ctx.arc(k[0] - r * .3, k[1] - r * .3, r * .35, 0, TAU); ctx.fillStyle = '#000'; ctx.fill(); } }
-  // the rear ring sight, nearest to your eye, standing on the action block
-  ringSight(G.zr, G.rr, .0045, G.ay0, .0028);
-  // while reloading, a ring fills around the rear sight
-  if (S.reloadT > 0) { const [cx, cy] = pr(0, 0, G.zr), R0 = f * G.rr / Z(G.zr) + 12 * u; ctx.beginPath(); ctx.arc(cx, cy, R0, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - S.reloadT / (S.reloadFull || 1))); ctx.lineWidth = 4 * u; ctx.strokeStyle = '#000'; ctx.stroke(); }
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  // a thick wooden limb from a to b (3D points), drawn as an inked tube with its left side shaded
+  const limb = (pts, r) => {
+    const P = pts.map(p => pr(...p)), W = pts.map(p => f * r / Z(p[2]));
+    const path = () => { ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); };
+    ctx.save(); ctx.translate(4 * u, 5 * u); path(); ctx.lineWidth = W[0] * 2 + 4; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.restore();
+    path(); ctx.lineWidth = W[0] * 2 + 4.6; ctx.strokeStyle = '#000'; ctx.stroke();
+    path(); ctx.lineWidth = W[0] * 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+    ctx.save(); ctx.translate(-W[0] * .55, 0); path(); ctx.lineWidth = W[0] * .7; ctx.setLineDash([2, 3]); ctx.strokeStyle = '#000'; ctx.stroke(); ctx.restore(); // shading
+  };
+  // where the pouch is: slack at rest, drawn back toward you while your thumb is down, and past the prongs as it snaps
+  const t = L.draw, lerp3 = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
+  const pouch = t >= 0 ? lerp3(L.rest, L.pull, t) : lerp3(L.rest, [0, L.rest[1] - .03, L.z + .25], -t);
+  const tipL = [-L.tx, L.ty, L.z], tipR = [L.tx, L.ty, L.z];
+  // a rubber band: solid black, thicker the nearer it is
+  const band = (a, b) => { const A = pr(...a), B = pr(...b), wa = Math.max(2, f * .0032 / Z(a[2])), wb = Math.max(2, f * .0032 / Z(b[2]));
+    const dx = B[0] - A[0], dy = B[1] - A[1], m = Math.hypot(dx, dy) || 1, nx = -dy / m, ny = dx / m;
+    ctx.beginPath(); ctx.moveTo(A[0] + nx * wa, A[1] + ny * wa); ctx.lineTo(B[0] + nx * wb, B[1] + ny * wb); ctx.lineTo(B[0] - nx * wb, B[1] - ny * wb); ctx.lineTo(A[0] - nx * wa, A[1] - ny * wa); ctx.closePath();
+    ctx.fillStyle = '#000'; ctx.fill(); };
+  const pouchDraw = () => {
+    const [px, py] = pr(...pouch), w = f * .02 / Z(pouch[2]), h = w * .62;
+    ctx.beginPath(); ctx.ellipse(px, py, w, h, 0, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2.4; ctx.strokeStyle = '#000'; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(px, py, w, h, 0, 0, TAU); ctx.save(); ctx.clip(); ctx.beginPath(); for (let x = -w * 2; x < w * 2; x += 4) { ctx.moveTo(px + x, py - h); ctx.lineTo(px + x + h, py + h); } ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+    if (loaded && t > -.05) { const r = w * .55; ctx.beginPath(); ctx.arc(px, py - h * .45, r, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2.2; ctx.stroke();
+      ctx.fillStyle = '#000'; [[-.3, -.2], [.25, .1], [-.05, .35]].forEach(([a, b]) => { ctx.beginPath(); ctx.arc(px + a * r, py - h * .45 + b * r, Math.max(1, r * .09), 0, TAU); ctx.fill(); }); }
+  };
+  // the pouch is behind the fork when it's out in front, in front of it when drawn back toward you
+  const pouchFar = pouch[2] > L.z - .02;
+  if (pouchFar) { band(tipL, pouch); band(tipR, pouch); pouchDraw(); }
+  // the handle, wrapped in striped tape, running down off the bottom of the screen
+  const crotch = [0, L.cy, L.z], base = [0, .42, L.z - .06];
+  limb([crotch, base], L.grip);
+  { const a = pr(0, L.cy + .04, L.z - .006), b = pr(0, .42, L.z - .06), w = f * L.grip / Z(L.z);
+    for (let k = 0; k < 7; k++) { const y0 = a[1] + (b[1] - a[1]) * k / 7, y1 = y0 + (b[1] - a[1]) / 14, x = a[0] + (b[0] - a[0]) * k / 7;
+      ctx.beginPath(); ctx.rect(x - w, y0, w * 2, y1 - y0); ctx.save(); ctx.clip(); ctx.beginPath(); for (let q = -w * 2; q < w * 2; q += 3.2) { ctx.moveTo(x + q, y0); ctx.lineTo(x + q + (y1 - y0), y1); } ctx.lineWidth = 1.1; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.moveTo(x - w, y0); ctx.lineTo(x + w, y0); ctx.moveTo(x - w, y1); ctx.lineTo(x + w, y1); ctx.lineWidth = 1.6; ctx.stroke(); } }
+  // the two arms of the Y, curving out and up to the prong tips
+  [-1, 1].forEach(sd => limb([crotch, [sd * L.tx * .45, L.cy - .03, L.z], [sd * L.tx * .9, L.cy - .06, L.z], [sd * L.tx, L.ty + .006, L.z]], L.arm));
+  // the knob at each tip where the band is tied
+  [tipL, tipR].forEach(p => { const [x, y] = pr(...p), r = f * L.arm * 1.25 / Z(p[2]); ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2.4; ctx.strokeStyle = '#000'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - r, y + r * .2); ctx.lineTo(x + r, y + r * .2); ctx.lineWidth = 2.6; ctx.stroke(); });
+  if (!pouchFar) { band(tipL, pouch); band(tipR, pouch); pouchDraw(); }
+  // a tiny dot in the middle of the gap: exactly where the shot lands
+  ctx.beginPath(); ctx.arc(g.sx, g.sy, 2.6 * u, 0, TAU); ctx.fillStyle = '#000'; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = '#fff'; ctx.stroke();
+  // reloading: a ring fills round the gap
+  if (S.reloadT > 0) { ctx.beginPath(); ctx.arc(g.sx, g.sy, 18 * u, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - S.reloadT / (S.reloadFull || 1))); ctx.lineWidth = 3.5 * u; ctx.strokeStyle = '#000'; ctx.stroke(); }
 }
 
 function drawCounterFg() {
@@ -395,7 +368,7 @@ function draw(dt = 0) {
   drawFx(dt);
   // the foreground, in screen pixels
   ctx.setTransform(V.D, 0, 0, V.D, 0, 0);
-  drawCounterFg(); drawShotLines(); drawYourRifle(); drawBlots();
+  drawCounterFg(); drawShotLines(); drawSling(); drawBlots();
   drawFloats();
 }
 
@@ -490,7 +463,6 @@ function hud(force) {
   $('tube').classList.toggle('reloading', reloading);
   $('tubeFill').style.transform = `scaleX(${reloading ? 1 - S.reloadT / (S.reloadFull || 1) : 0})`;
   $('tubeLbl').textContent = reloading ? 'Reloading' : 'Reload';
-  $('fire').classList.toggle('empty', reloading);
   // shells
   const sk = S.shells.join() + '|' + S.load + '|' + E.beltSize(S);
   if (force || sk !== HUD.shells) {
@@ -508,7 +480,8 @@ function hud(force) {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // ---------- input ----------
-// Touch: drag a thumb anywhere on the screen (not on a button) to move your sights, like a mouse. Nothing fires until you press Pow!.
+// Touch: put a thumb down anywhere (not on a button) to draw back the slingshot, drag to move your sights like a mouse, let go to fire.
+// A tap fires where the sights already are. Nothing about the draw delays the shot.
 // Two thumbs work at once: one dragging, one on the button. Mouse: move to aim, click to fire. Keyboard: arrows, space or enter.
 const clampSight = () => { SIGHT.x = Math.max(4, Math.min(E.W - 4, SIGHT.x)); SIGHT.y = Math.max(30, Math.min(E.GH - 4, SIGHT.y)); };
 function pull() {
@@ -545,14 +518,9 @@ PLAYEL.addEventListener('onpointerrawupdate' in window ? 'pointerrawupdate' : 'p
   const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
   (evs.length ? evs : [e]).forEach(c => thumbMove(c.clientX, c.clientY, c.timeStamp));
 });
-const letGo = e => { const d = SIGHT.drag; if (d && d.id === e.pointerId) SIGHT.drag = null; };
-PLAYEL.addEventListener('pointerup', letGo);
-PLAYEL.addEventListener('pointercancel', letGo);
-// the fire button fires the moment it's pressed, not on release, so it feels like a trigger
-const FIRE = $('fire');
-FIRE.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); FIRE.classList.add('down'); pull(); });
-['pointerup', 'pointercancel', 'pointerleave'].forEach(t => FIRE.addEventListener(t, () => FIRE.classList.remove('down')));
-FIRE.addEventListener('click', e => { if (e.detail === 0) pull(); }); // a keyboard press on the focused button
+const letGo = fire => e => { const d = SIGHT.drag; if (!d || d.id !== e.pointerId) return; SIGHT.drag = null; if (fire) pull(); };
+PLAYEL.addEventListener('pointerup', letGo(true));
+PLAYEL.addEventListener('pointercancel', letGo(false));
 addEventListener('keyup', e => { SIGHT.keys[e.key] = false; });
 $('tube').onclick = () => { if (R && !paused && E.reload(R, 1)) squash($('tube')); };
 $('shells').onclick = e => {
@@ -579,7 +547,7 @@ function startRound(o) {
   R = E.newRound({ booth: o.booth, seed: o.seed, seats: o.seats });
   FX = []; HOLES = []; BLOTS = []; SHAKE = 0; endAt = 0; paused = false;
   AIM.forEach((a, i) => { a.x = [110, 200, 290][i]; a.y = 300; a.kick = 0; });
-  SIGHT.x = 200; SIGHT.y = 280; SIGHT.drag = null; SIGHT.keys = {}; CAM.x = 200; CAM.y = 280;
+  SIGHT.x = 200; SIGHT.y = 280; SIGHT.drag = null; SIGHT.keys = {}; SLING.draw = SLING.vel = 0; CAM.x = 200; CAM.y = 280;
   $('play').classList.remove('late');
   show('play');
   requestAnimationFrame(() => { resize(); buildHud(); draw(); });
@@ -590,8 +558,8 @@ function startRound(o) {
     paused = true;
     sheet(`<h2>Step right up</h2>
       <div class="how">
-        <p><b>Drag a thumb anywhere to aim.</b> Your sights follow it like a mouse. Move slowly for fine aim, flick to swing across the booth.</p>
-        <p><b>Press Pow! to fire.</b> Reload is right beside it, or it reloads by itself when you run out.</p>
+        <p><b>Put a thumb down to draw your slingshot, drag to aim, let go to fire.</b> The gap between the prongs follows your thumb like a mouse: slow for fine aim, a quick flick to swing across the booth.</p>
+        <p>6 corks a load. It reloads by itself when you run out, or press Reload.</p>
         <p>Knock down more than the rivals either side of you before the clock runs out.</p>
         <p>They shoot the same targets as you. If they get there first, it’s theirs.</p>
         <p><b>Hit 3 in a row</b> and your points double. 6 in a row triples them. A miss starts you over.</p>
@@ -616,6 +584,7 @@ function loop(now) {
     }
     onEvents();
     for (const a of AIM) a.kick *= Math.pow(.0005, dt);
+    slingStep(dt);
     // arrow keys move the sights; the sights wobble a little as you hold the rifle up; the camera follows
     const k = SIGHT.keys, sp = 260 * dt;
     SIGHT.x += ((k.ArrowRight ? 1 : 0) - (k.ArrowLeft ? 1 : 0)) * sp; SIGHT.y += ((k.ArrowDown ? 1 : 0) - (k.ArrowUp ? 1 : 0)) * sp; clampSight();
