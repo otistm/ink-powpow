@@ -16,7 +16,8 @@ const CAM = { x: 200, y: 300 };
 const SIGHT = { x: 200, y: 300, wx: 0, wy: 0, drag: null, keys: {} };
 // The aiming stick, like Ink Sky's: it appears where your thumb lands. Tilt it and the sights glide that way;
 // the further you tilt, the faster they go (slow near the middle for fine aim, fast at the edge to swing across).
-const STICK = { R: 46, FOLLOW: 64, DEAD: .08, CURVE: 1.7, SPEED: 480 }; // px to full tilt, px before the base follows your thumb, world units a second at full tilt
+// On top of that, every pixel your thumb moves nudges the sights straight away (NUDGE), so they answer the moment you move.
+const STICK = { R: 46, FOLLOW: 64, DEAD: .05, CURVE: 1.25, SPEED: 560, NUDGE: .7 }; // px to full tilt, px before the base follows your thumb, world units a second at full tilt, screen px of sight per px of thumb
 let FX = [], HOLES = [], BLOTS = [], SHAKE = 0;
 const AIM = [{ x: 110, y: 300, kick: 0 }, { x: 200, y: 300, kick: 0 }, { x: 290, y: 300, kick: 0 }];
 
@@ -533,6 +534,8 @@ PLAYEL.addEventListener('pointermove', e => {
   if (!R || paused) return;
   if (e.pointerType === 'mouse') { if (e.target === cv) { SIGHT.x += (e.movementX || 0) / V.k; SIGHT.y += (e.movementY || 0) / V.k; clampSight(); } return; }
   const d = SIGHT.drag; if (!d || d.id !== e.pointerId) return;
+  // the nudge: the sights move with your thumb straight away
+  SIGHT.x += (e.clientX - d.x) * STICK.NUDGE / V.k; SIGHT.y += (e.clientY - d.y) * STICK.NUDGE / V.k; clampSight();
   d.x = e.clientX; d.y = e.clientY;
   let dx = d.x - d.sx, dy = d.y - d.sy, m = Math.hypot(dx, dy);
   if (m > STICK.FOLLOW) { d.sx = d.x - dx / m * STICK.FOLLOW; d.sy = d.y - dy / m * STICK.FOLLOW; dx = d.x - d.sx; dy = d.y - d.sy; m = STICK.FOLLOW; } // the stick follows your thumb
@@ -631,8 +634,8 @@ function loop(now) {
     SIGHT.x += ((k.ArrowRight ? 1 : 0) - (k.ArrowLeft ? 1 : 0)) * sp; SIGHT.y += ((k.ArrowDown ? 1 : 0) - (k.ArrowUp ? 1 : 0)) * sp; clampSight();
     stickAim(dt);
     const c = PLAY.clock, wob = RM ? 0 : 1;
-    SIGHT.wx = (Math.sin(c * 1.1) * 2 + Math.sin(c * 2.7 + 1) * 1.1) * wob; SIGHT.wy = (Math.cos(c * .9) * 1.6 + Math.sin(c * 2.1) * .9) * wob;
-    camera(Math.min(1, dt * 5));
+    SIGHT.wx = (Math.sin(c * 1.1) + Math.sin(c * 2.7 + 1) * .5) * wob; SIGHT.wy = (Math.cos(c * .9) * .8 + Math.sin(c * 2.1) * .45) * wob;
+    camera(1); // the view stays locked on your sights
     SHAKE = SHAKE > .3 ? SHAKE * Math.pow(.001, dt) : 0;
     if (R.freeze > 0) SHAKE = Math.max(SHAKE, .8);
     hud();
